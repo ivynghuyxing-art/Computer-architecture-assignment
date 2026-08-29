@@ -72,8 +72,8 @@ has_dot	db	0		;for email validation .
     	int     21h
 
     	mov     ah,09h
-   	lea     dx,logo2
-   	int     21h
+   	    lea     dx,logo2
+   	    int     21h
 
     	mov     ah,09h
     	lea     dx,logo3

@@ -239,18 +239,18 @@ password_again:
 register_password:
 
     	mov   ah,08h
-   	int     21h
+   	    int     21h
 
     	cmp   al,0Dh						; ENTER
     	je      password_done
 
     	cmp   al,08h						; BACKSPACE
-   	je      register_password_backspace
+   	    je      register_password_backspace
 
     	cmp    si,20						 ; Maximum 20 characters for register password
     	jae     register_password
 
-   	mov     reg_password[si],al			; Store password
+   	    mov     reg_password[si],al			; Store password
 
     	inc     si
 
@@ -271,7 +271,7 @@ register_password_backspace:
     	mov     byte ptr reg_password[si],0
 
     	mov   dl,08h						; Cursor back
-   	mov   ah,02h
+   	    mov   ah,02h
     	int      21h
 
     	mov   dl,' '						 ; Print space
@@ -404,9 +404,9 @@ input_phone:
 
     	mov     reg_phone[si],al
 
-	inc     si
+	    inc     si
 
-	cmp     si,15
+	    cmp     si,15
     	jae     phone_done
 
     	jmp     input_phone
@@ -430,7 +430,7 @@ input_email:
     	mov     ah,01h
     	int     21h
 
-   	 cmp     al,0Dh
+   	    cmp     al,0Dh
     	je      email_done
 
     	cmp     si,30
@@ -461,8 +461,8 @@ validate_email:
      	cmp     byte ptr reg_email[0],'@'		           ; First character cannot be @
     	je      email_invalid
 
- 	cmp     byte ptr reg_email[0],'.'			   ; First character cannot be .
-   	 je      email_invalid
+ 	    cmp     byte ptr reg_email[0],'.'			   ; First character cannot be .
+   	    je      email_invalid
 
 validate_email_loop:
 
@@ -471,39 +471,38 @@ validate_email_loop:
     	cmp     al,0								    ; End of email
     	je      email_validate_end
 
-	cmp     al,' '							; Space is not allowed
+	    cmp     al,' '							; Space is not allow
     	je      email_invalid
 	   
-	cmp     al,'@'							 ; Check @
+	    cmp     al,'@'							 ; Check @
     	je      email_at_found
 
-	cmp     al,'.'							   ; Check .
+	    cmp     al,'.'							   ; Check .
     	je      email_dot_found
-
 
     	inc     si
 
     	jmp     validate_email_loop
 
-email_at_found:					;found @
+email_at_found:					;if found @
 
     	cmp  has_at,1					 ; Only one @ is allowed
     	je      email_invalid
 
-   	 mov    has_at,1
+   	    mov    has_at,1
 
     	inc     si
 
     	jmp     validate_email_loop
 
-email_dot_found:				;found dot
+email_dot_found:				;if found dot
 
     	cmp     email_has_at,1			 ; Only count . if @ already appeared
     	jne     email_dot_continue
 
     	mov     email_has_dot,1
 
-	email_dot_continue:
+email_dot_continue:
 
     	inc     si
 
@@ -517,14 +516,14 @@ email_validate_end:
     	cmp     email_has_dot,1				    ; Must have . after @
     	jne     email_invalid
 
-	cmp     si,0					 ; SI currently points to ending 0
+	    cmp     si,0					 ; SI currently points to ending 0
     	je      email_invalid
 
     	dec     si						;SI move back 1 one position
 
     	mov     al,reg_email[si]			    ; Last character cannot be .
 
-   	cmp     al,'.'
+   	    cmp     al,'.'
     	je      email_invalid
 
     	cmp     al,'@'				    ; Last character cannot be @
@@ -542,15 +541,15 @@ email_invalid:
 
 email_valid:
 
-    jmp     register_successful
+        jmp     register_successful
 
 register_successful:
 
-    mov     ah,09h
-    lea     dx,msg23
-    int     21h
+        mov     ah,09h
+        lea     dx,msg23
+        int     21h
 
-    jmp     menu
+        jmp     menu
 
 login:
 
@@ -577,16 +576,12 @@ input_login_username:
     	mov     ah,01h
     	int     21h
 
-
     	cmp     al,0Dh
     	je      login_username_done
 
-
     	mov     login_username[si],al
 
-
     	inc     si
-
 
     	cmp     si,20
     	jae     login_username_done
@@ -597,8 +592,7 @@ login_username_done:
 
     	mov     byte ptr login_username[si],0
 
-   	 jmp     input_login_password_start
-
+   	    jmp     input_login_password_start
 
 input_login_password_start:
 
@@ -615,7 +609,7 @@ input_login_password:
 
     	cmp     al,0Dh						; enter
 
-   	je      login_password_done
+   	    je      login_password_done
 
     	cmp     al,08h							; backspace
     	je      login_password_backspace
@@ -623,15 +617,15 @@ input_login_password:
     	cmp     si,20							; Maximum 20 characters
     	jae     input_login_password
 
-   	 mov     login_password[si],al			 ; Store password
+   	    mov     login_password[si],al			 ; Store password
 	
-   	 inc     si
+   	    inc     si
 
     	mov     dl,'*'						 ; Password display *
     	mov     ah,02h
     	int     21h
    	
-	jmp     input_login_password
+	    jmp     input_login_password
 
 login_password_backspace:
 
@@ -670,20 +664,15 @@ check_username:
 
     	mov     al,reg_username[si]
 
-
     	cmp     al,login_username[si]
-
     	jne     username_not_same
 
-
     	cmp     al,0
-
     	je      check_login_password
-
 
     	inc     si
 
-   	jmp     check_username
+   	    jmp     check_username
 
 username_not_same:
 
@@ -697,16 +686,11 @@ check_password_login:
 
     	mov     al,reg_password[si]
 
-
     	cmp     al,login_password[si]
-
     	jne     password_not_same
 
-
     	cmp     al,0
-
     	je      login_success
-
 
     	inc     si
 
@@ -727,7 +711,7 @@ login_success:
 login_error:
 
     	mov     ah,09h
-   	lea     dx,msg22
+   	    lea     dx,msg22
     	int     21h
 
     	jmp     menu
@@ -735,7 +719,7 @@ login_error:
 exit_program:
 
     	mov     ax,4c00h
-   	int     21h
+   	    int     21h
 
 	main 	endp
 

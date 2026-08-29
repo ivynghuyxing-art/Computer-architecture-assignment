@@ -41,7 +41,7 @@ msg20   db 	10,13,"Enter Password : $"
 msg21   db 	10,13,"Login Successfully!$"
 msg22   db 	10,13,"Invalid username or password!$"
 msg23   db 	10,13,"Register Successfully!$"
-msg24   db 	10,13,"Invalid email ! Please enter correct email !"
+msg24   db 	10,13,"Invalid email ! Please enter correct email!$"
 
 reg_username    db 	21 dup(0)
 reg_password    db 	21 dup(0)

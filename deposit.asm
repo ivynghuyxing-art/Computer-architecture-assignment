@@ -3,9 +3,9 @@ title	Bank deposit system
 .model	small
 .stack	64
 .data
-	msg1	db	10,13,"-------------------------"
-	msg2	db	10,13,"         DEPOSIT         "
-	msg3	db	10,13,"-------------------------"
+	msg1	db	10,13,"------------------------- $"
+	msg2	db	10,13,"         DEPOSIT          $"
+	msg3	db	10,13,"------------------------- $"
 	msg4	db	10,13,"Enter account number: $"
 	msg5	db	10,13,"Account found. $"
 	msg6	db	10,13,"Current Balance: RM$"

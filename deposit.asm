@@ -26,7 +26,7 @@ title	Bank deposit system
 
 	filename	db	"account.txt",0
 	filehandle	dw	?
-	record	db	6 dup(?)
+	record	db	11 dup(?)
 
 ;***********************************************************************************************
 .code
@@ -96,6 +96,7 @@ convert_acc:
 
 	mov	ah, 3Dh			; open account.txt
 	mov	al, 2
+
 	lea	dx, filename
 	int	21h
 
@@ -114,7 +115,6 @@ search_acc:
 	cmp	ax, 0
 	je	acc_not_found
 
-check_acc:
 	mov	si, 0
 	mov	ax, 0			; compare input acc number with record
 	mov	cx, 4
@@ -131,7 +131,7 @@ convert_record_acc:
 	inc	si
 	loop	convert_record_acc
 
-	cmp	ax, acc_num
+	cmp	ax, acc_num		; compare account number
 	je	acc_found
 	jmp	search_acc
 
@@ -165,11 +165,8 @@ convert_balance:
 	mov	ax, balance
 	call	display_num
 
-	mov	ah, 09h			; enter deposit amount
+	mov	ah, 09h				; enter deposit amount
 	lea	dx, msg7
-	int	21h
-
-	mov	ah, 01h
 	int	21h
 
 	mov	cx, 4
@@ -218,7 +215,7 @@ convert_deposit:
 	add	deposit, ax
 	mov	newbalance, ax
 
-	mov	ah, 09h
+	mov	ah, 09h			; display deposit successful
 	lea	dx, msg8
 	int	21h
 
@@ -236,7 +233,7 @@ convert_deposit:
 	mov	ax, deposit
 	call	display_num
 
-	mov	ah, 09h			; new balance
+	mov	ah, 09h			; display new balance
 	lea	dx, msg11
 	int	21h
 
@@ -275,14 +272,18 @@ convert_newbalance:
 
 	mov	cx, 0
 	mov	dx, -11
-	int	21h
 
-	mov	ah, 40h
+	int	21h
+	jc	file_error
+
+	mov	ah, 40h			; write updated record
 	mov	bx, filehandle
 	
 	mov	cx, 11
 	lea	dx, record
 	int	21h
+
+	jc	file_error
 
 	mov	ah, 09h			; update successful
 	lea	dx, msg12
@@ -295,8 +296,12 @@ convert_newbalance:
 	jmp	exit
 
 error:	
-	mov	ah, 09h			; invalid input
+	mov	ah, 09h			; invalid input after file open
 	lea	dx, msg13
+	int	21h
+
+	mov	ah, 3Eh
+	mov	bx, filehandle
 	int	21h
 
 	jmp	start

@@ -4,58 +4,58 @@ title	bank system	main,submenu
 .stack	64
 .data
 ;--------------------------- MAIN MENU -----------------------------------------------------
-mainMenu	db	10,13,"-----------------------------------------"
-		db	10,13,"		      MAIN MENU			"
-		db	10,13,"-----------------------------------------"
-		db	10,13,"1. Account Management"
-		db	10,13,"2. Transaction"
-		db	10,13,"3. Interest & Loan"
-		db	10,13,"4. Generate Bank Statement"
-		db	10,13,"5. Logout"
-		db	10,13,"Select the option: $"
+	main1	db	10,13,"-----------------------------------------"
+	main2	db	10,13,"		      MAIN MENU			"
+	main3	db	10,13,"-----------------------------------------"
+	main4	db	10,13,"1. Account Management"
+	main5	db	10,13,"2. Transaction"
+	main6	db	10,13,"3. Interest & Loan"
+	main7	db	10,13,"4. Generate Bank Statement"
+	main8	db	10,13,"5. Logout"
+	main9	db	10,13,"Select the option: $"
 
 ;--------------------------- Account Management Submenu ------------------------------------------
-accMenuStr	db	10,13,"-----------------------------------------"
-		db	10,13,"		  ACCOUNT MANAGEMENT	        "
-		db	10,13,"-----------------------------------------"
-		db	10,13,"1. Create Account"
-		db	10,13,"2. Update Account"
-		db	10,13,"3. View Account Details"
-		db	10,13,"4. Back to Main Menu"
-		db	10,13,"Select the option: $"
+	acc1	db	10,13,"-----------------------------------------"
+	acc2	db	10,13,"		  ACCOUNT MANAGEMENT	        "
+	acc3	db	10,13,"-----------------------------------------"
+	acc4	db	10,13,"1. Create Account"
+	acc5	db	10,13,"2. Update Account"
+	acc6	db	10,13,"3. View Account Details"
+	acc7	db	10,13,"4. Back to Main Menu"
+	acc8	db	10,13,"Select the option: $"
 
 ;------------------------------- Transaction Submenu ------------------------------------------
-transMenuStr	db	10,13,"-----------------------------------------"
-		db	10,13,"	        TRANSACTION MANAGEMENT	        "
-		db	10,13,"-----------------------------------------"
-		db	10,13,"1. Deposit Money"
-		db	10,13,"2. Withdrawal Money"
-		db	10,13,"3. Check Balance"
-		db	10,13,"4. Back to Main Menu"
-		db	10,13,"Select the option: $"
+	trans1	db	10,13,"-----------------------------------------"
+	trans2	db	10,13,"	        TRANSACTION MANAGEMENT	        "
+	trans3	db	10,13,"-----------------------------------------"
+	trans4	db	10,13,"1. Deposit Money"
+	trans5	db	10,13,"2. Withdrawal Money"
+	trans6	db	10,13,"3. Check Balance"
+	trans7	db	10,13,"4. Back to Main Menu"
+	trans8	db	10,13,"Select the option: $"
 
 ;----------------------------- Interest & Loan Submenu ------------------------------------------
-intMenuStr	db	10,13,"------------------------------------------"
-		db	10,13,"	       INTEREST & LOAN MANAGEMENT        "
-		db	10,13,"------------------------------------------"
-		db	10,13,"1. Calculate Interest"
-		db	10,13,"2. Add Interest to Balance"
-		db	10,13,"3. Loan"
-		db	10,13,"4. Back to Main Menu"
-		db	10,13,"Select the option: $"
+	int1	db	10,13,"------------------------------------------"
+	int2	db	10,13,"	       INTEREST & LOAN MANAGEMENT        "
+	int3	db	10,13,"------------------------------------------"
+	int4	db	10,13,"1. Calculate Interest"
+	int5	db	10,13,"2. Add Interest to Balance"
+	int6	db	10,13,"3. Loan"
+	int7	db	10,13,"4. Back to Main Menu"
+	int8	db	10,13,"Select the option: $"
 
 ;--------------------------- Account Management Submenu ------------------------------------------
-mainMenu	db	10,13,"-----------------------------------------"
-		db	10,13,"	       GENERATE BANK MANAGEMENT	        "
-		db	10,13,"-----------------------------------------"
-		db	10,13,"Enter account number: $"
+	gnt1	db	10,13,"-----------------------------------------"
+	gnt2	db	10,13,"	       GENERATE BANK MANAGEMENT	        "
+	gnt3	db	10,13,"-----------------------------------------"
+	gnt4	db	10,13,"Enter account number: $"
 
-accFoundStr	db	10,13,"Account found. $"
-pressKeyStr	db	10,13,"Press any key to generate statement... $"
-invalidStr	db	10,13,"Invalid input! Please enter numeric number. $"
-accNotFound	db	10,13,"Account not found! $"
-logoutStr	db	10,13,"Logging out... $"
-accNum		db	6dup(?)
+	accFoundStr	db	10,13,"Account found. $"
+	pressKeyStr	db	10,13,"Press any key to generate statement... $"
+	invalidStr	db	10,13,"Invalid input! Please enter numeric number. $"
+	accNotFound	db	10,13,"Account not found! $"
+	logoutStr	db	10,13,"Logging out... $"
+	accNum		db	6dup(?)
 
 ;***********************************************************************************************
 .code
@@ -66,7 +66,39 @@ accNum		db	6dup(?)
 
 main_menu:
 	mov	ah, 09h
-	lea	dx, mainMenu
+	lea	dx, main1
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main2
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main3
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main4
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main5
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main6
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main7
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main8
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, main9
 	int	21h
 
 	mov	ah, 01h
@@ -98,7 +130,35 @@ invalid_main:
 
 acc_management:
 	mov	ah, 09h
-	lea	dx, accMenuStr
+	lea	dx, acc1
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc2
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc3
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc4
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc5
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc6
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc7
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, acc8
 	int	21h
 
 	mov	ah, 01h
@@ -127,7 +187,35 @@ invalid_acc:
 
 transaction:
 	mov	ah, 09h
-	lea	dx, transMenuStr
+	lea	dx, trans1
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans2
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans3
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans4
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans5
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans6
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans7
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans8
 	int	21h
 
 	mov	ah, 01h
@@ -156,7 +244,35 @@ invalid_trans:
 
 interest_loan:
 	mov	ah, 09h
-	lea	dx, intMenuStr
+	lea	dx, int1
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int2
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int3
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int4
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int5
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int6
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int7
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, int8
 	int	21h
 
 	mov	ah, 01h
@@ -183,7 +299,7 @@ invalid_interest:
 
 	jmp	interest_loan
 
-generate_management:
+generate_statement:
 	mov	ah, 09h
 	lea	dx, statementMenuStr
 	int	21h
@@ -191,7 +307,7 @@ generate_management:
 	mov	cx, 6
 	mov	si, 0
 
-invalid_acc:
+input_acc:
 	mov	ah, 01h
 	int	21h
 
@@ -217,7 +333,7 @@ error:
 	lea	dx, invalidStr
 	int	21h
 
-	jmp	main_menu
+	jmp	generate_statement
 
 acc_found:
 	mov	ah, 09h
@@ -234,7 +350,7 @@ acc_found:
 
 acc_not_found:
 	mov	ah, 09h
-	lea	dx, accnotFoundStr
+	lea	dx, accNotFound
 	int	21h
 
 	jmp	main_menu
@@ -246,4 +362,3 @@ logout:
 
 	mov	ax, 4C00h
 	int	21h
-

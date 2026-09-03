@@ -1,0 +1,6 @@
+# Account Number, Transaction Type, Amount, Balance, Date
+
+1234,Deposit,500,1500,03/09/2026
+1234,Withdrawal,200,1300,03/09/2026
+5678,Deposit,1000,3500,03/09/2026
+9012,Deposit,500,3500,03/09/2026

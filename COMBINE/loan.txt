@@ -1,0 +1,5 @@
+# Account Number, Loan Amount, Loan Period, Interest, Total Payment, Monthly Payment
+
+1234,10000,2,1000,11000,458
+5678,20000,3,3000,23000,638
+9012,5000,1,250,5250,437

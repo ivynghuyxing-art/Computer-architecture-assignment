@@ -2,7 +2,6 @@ title       assignment      account management
 
 .model      small
 .stack      64
-
 .data
     logo_account        db 13,10,"=========================="
                         db 13,10,"        .--------."

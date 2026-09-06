@@ -111,13 +111,13 @@ main_menu:
 	je	transaction
 
 	cmp	al, '3'
-	je	interest_loan
+	call	interest_loan
 
 	cmp	al, '4'
-	je	generate_statement
+	call	generate_statement
 
 	cmp	al, '5'
-	je	logout
+	call	logout
 
 	jmp	invalid_main
 
@@ -174,7 +174,7 @@ acc_management:
 	je	view_acc
 
 	cmp	al, '4'
-	je	main_menu
+	call	main_menu
 
 	jmp	invalid_acc
 
@@ -231,7 +231,7 @@ transaction:
 	je	check_bal
 
 	cmp	al, '4'
-	je	main_menu
+	call	main_menu
 
 	jmp	invalid_trans
 
@@ -288,7 +288,7 @@ interest_loan:
 	je	loan
 
 	cmp	al, '4'
-	je	main_menu
+	call	main_menu
 
 	jmp	invalid_interest
 
@@ -362,3 +362,6 @@ logout:
 
 	mov	ax, 4C00h
 	int	21h
+	;main endp 
+
+;end main

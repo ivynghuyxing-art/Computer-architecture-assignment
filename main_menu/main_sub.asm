@@ -55,7 +55,7 @@ title	bank system	main,submenu
 	invalidStr	db	10,13,"Invalid input! Please enter numeric number. $"
 	accNotFound	db	10,13,"Account not found! $"
 	logoutStr	db	10,13,"Logging out... $"
-	accNum		db	6dup(?)
+	accNum		db	6 dup(?)
 
 ;***********************************************************************************************
 .code

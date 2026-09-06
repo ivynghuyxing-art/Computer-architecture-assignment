@@ -264,8 +264,8 @@ Printout:
 	CMP AL, "y"
 	JE EXIT
 	
-	CMP AL, "N"
-	JE Continue
+	;CMP AL, "N"
+	;JE Continue
 
 ERROR1:MOV AH, 09H
 	LEA DX, ErrorMsg1
@@ -277,8 +277,8 @@ ERROR2:MOV AH, 09H
 	INT 21H
 	JMP Yearloop
 
-Continue:
-	JMP loanloop
+;Continue:
+	;JMP loanloop
 
 EXIT:	MOV AX, 4C00H
 	INT 21H

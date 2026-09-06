@@ -4,6 +4,14 @@ Title BankInterestAssignment
 .STACK 64 
 .DATA
 ;--------------------------------Ivy Data------------------------------------------------
+    int1	db	10,13,"------------------------------------------ $"
+	int2	db	10,13,"	  INTEREST & LOAN MANAGEMENT         $"
+	int3	db	10,13,"------------------------------------------ $"
+	int4	db	10,13,"1. Calculate Interest $"
+	int5	db	10,13,"2. Add Interest to Balance $"
+	int6	db	10,13,"3. Loan $"
+	int7	db	10,13,"4. Back to Main Menu $"
+	int8	db	10,13,"Select the option: $"
 ;----------------------------------------------------------------------------------------
 
 ;--------------------------------Joey Data-----------------------------------------------
@@ -78,8 +86,57 @@ MAIN PROC FAR
     MOV DS, AX
     
 ;------------Emily Loan ------------------------------
+SubMenu:
+    MOV AH, 09H
+   	LEA DX, int1
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int2
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int3
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int4
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int5
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int6
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int7
+  	INT 21H
+
+    MOV AH, 09H
+   	LEA DX, int8
+  	INT 21H
+
+    MOV AH , 01H
+    INT 21H
+    CMP AL, '1'
+	JE place1	; check input and jmp to next line  
+	
+	CMP AL, '2' 
+	JE place2	; check input and jmp to next line  
+
+	
+	CMP AL, '3' 
+	JE loanpage ; check input and jmp to next line  
+
+	CMP AL, '4'
+	JE place4	; check input and jmp to next line 
+
 ;====== Display layout=====
 
+loanpage:
 	mov ah, 02h
 	mov bh, 00h
 	mov dh, 05h
@@ -275,13 +332,10 @@ Printout:
 	INT 21H
 
 	CMP AL, "Y"
-	JE EXIT
+	call SubMenu
 	CMP AL, "y"
-	JE EXIT
+	call SubMenu
 	
-	;CMP AL, "N"
-	;JE Continue
-
 ERROR1:MOV AH, 09H
 	LEA DX, ErrorMsg1
 	INT 21H
@@ -292,13 +346,11 @@ ERROR2:MOV AH, 09H
 	INT 21H
 	JMP Yearloop
 
-;Continue:
-	;JMP loanloop
+;outpage:
+	;JMP SubMenu
 ;---------------------------------------------------
 
-
-
-EXIT:	MOV AX, 4C00H
+EXIT:MOV AX, 4C00H
 	INT 21H
 
 	MAIN ENDP

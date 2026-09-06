@@ -4,7 +4,7 @@ title	Check balance system
 .stack	64
 .data
 	msg1	db	10,13,"------------------------- $"
-	msg2	db	10,13,       CHECK BALANCE       $"
+	msg2	db	10,13,"       CHECK BALANCE       $"
 	msg3	db	10,13,"------------------------- $"
 	msg4	db	10,13,"Enter account number: $"
 	msg5	db	10,13,"Account found. $"
@@ -53,10 +53,10 @@ input_acc:
 	int	21h
 
 	cmp	al, '0'
-	jb	invalid
+	call	invalid
 
 	cmp	al, '9'
-	ja	invalid
+	call	invalid
 
 	mov	vinput[si], al
 	inc	si
@@ -98,7 +98,7 @@ input_acc:
 	lea	dx, filename
 	int	21h
 
-	jc	file_error
+	call	file_error
 	mov	filehandle, ax
 	
 	mov	bx, filehandle			; read account.txt
@@ -108,7 +108,7 @@ input_acc:
 	lea	dx, acc_buffer
 	int	21h
 	
-	jc	file_error
+	call	file_error
 	mov	acc_size, ax
 
 	mov	ah, 3Eh				; close account.txt
@@ -160,7 +160,7 @@ find_balance:
 	jmp	find_balance
 
 balance_start:
-	iinc	si
+	inc	si
 	mov	balance, 0
 
 read_balance:

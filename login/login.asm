@@ -625,7 +625,7 @@ save_reg_username:
         mov     si,0
 
 count_reg_password:
-        cmp     byte ptr reg_password[si],0			;count password length
+        cmp     byte ptr reg_password[si],0     ;count password length
         je      save_reg_password
 
         inc     si
@@ -701,12 +701,11 @@ save_reg_email:
         mov     bx,user_handle
 
         mov     ah,40h
-
         lea     dx,reg_email
 
         int     21h
 
-        mov     bx,user_handle			;write new line
+        mov     bx,user_handle		;write new line
 
         mov     ah,40h
 
@@ -716,21 +715,20 @@ save_reg_email:
 
         int     21h
 
-        mov     bx,user_handle			;close user.txt
+        mov     bx,user_handle		;close user.txt
 
         mov     ah,3Eh
 
         int     21h
 
-        mov     ah,09h					;display register successful
+        mov     ah,09h			;display register successful
         lea     dx,msg23
         int     21h
 
         jmp     menu
 
 user_file_error:
-        mov     ah,09h					;display file error message
-
+        mov     ah,09h	        	;display file error message
         lea     dx,msg_file_error
 
         int     21h

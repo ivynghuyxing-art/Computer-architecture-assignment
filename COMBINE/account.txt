@@ -1,4 +1,4 @@
-# CustomerID, Name, Account Number, Account Type, Initial Balance
+# CustomerID, Name, Account Number, Account Type, Current Balance
 
 C001,Ali,1234,Saving,1000
 C002,Abu,5678,Current,2500

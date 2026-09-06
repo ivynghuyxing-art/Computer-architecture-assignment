@@ -4,14 +4,14 @@ title	bank system	main,submenu
 .stack	64
 .data
 ;--------------------------- MAIN MENU -----------------------------------------------------
-	main1	db	10,13,"-----------------------------------------"
-	main2	db	10,13,"		      MAIN MENU			"
-	main3	db	10,13,"-----------------------------------------"
-	main4	db	10,13,"1. Account Management"
-	main5	db	10,13,"2. Transaction"
-	main6	db	10,13,"3. Interest & Loan"
-	main7	db	10,13,"4. Generate Bank Statement"
-	main8	db	10,13,"5. Logout"
+	main1	db	10,13,"----------------------------------------- $"
+	main2	db	10,13,"		          MAIN MENU					 $"
+	main3	db	10,13,"----------------------------------------- $"
+	main4	db	10,13,"1. Account Management $"
+	main5	db	10,13,"2. Transaction $"
+	main6	db	10,13,"3. Interest & Loan $"
+	main7	db	10,13,"4. Generate Bank Statement $"
+	main8	db	10,13,"5. Logout $"
 	main9	db	10,13,"Select the option: $"
 
 ;--------------------------- Account Management Submenu ------------------------------------------

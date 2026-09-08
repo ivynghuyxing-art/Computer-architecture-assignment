@@ -1385,7 +1385,7 @@ Mainmenu:
 	cmp	al, '4'
 	;je	generate_statement
 
-	cmp	al, '5'
+	cmp	al, '5' ; HAVE ISSUES IN THIS PART NEED TO CHECK 
 	call	logout
 
 	jmp	invalid_main

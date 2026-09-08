@@ -1380,15 +1380,18 @@ Mainmenu:
 	;je	transaction
 
 	cmp	al, '3'
-	je	interest_loan
+	call	interest_loan
 
 	cmp	al, '4'
 	;je	generate_statement
 
-	cmp	al, '5' ; HAVE ISSUES IN THIS PART NEED TO CHECK 
-	call	logout
+	cmp	al, '5' ; Fixed
+	je       back_logout
 
 	jmp	invalid_main
+
+back_logout:
+       call logout
 
 invalid_main:
 
@@ -1397,6 +1400,7 @@ invalid_main:
 	int	21h
 
 	jmp	Mainmenu
+
 
 ;-------account_management page -------------------
 acc_management:
@@ -1456,6 +1460,65 @@ invalid_acc:
 
 	jmp	acc_management
 
+
+;------------Transaction page ------------------------------
+transaction:
+	mov	ah, 09h
+	lea	dx, trans1
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans2
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans3
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans4
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans5
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans6
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans7
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, trans8
+	int	21h
+
+	mov	ah, 01h
+	int	21h
+
+	cmp	al, '1'
+	;je	deposit_money
+
+	cmp	al, '2'
+	;je	withdrawal_money Didn't put the code for this function yetfor this three
+
+	cmp	al, '3'
+	;je	check_bal
+
+	cmp	al, '4'
+	call	Mainmenu
+
+	jmp	invalid_trans
+
+invalid_trans:
+	mov	ah, 09h
+	lea	dx, invalidStr
+	int	21h
+
+	jmp	transaction
+
 ;------------Loan and interest page  ------------------------------
 interest_loan:
     MOV AH, 09H
@@ -1494,26 +1557,87 @@ interest_loan:
     INT 21H
 
     CMP AL, '1'
-	JE place1	; check input and jmp to next line  
+   ; call place1	; check input and jmp to next line  
 	
-	CMP AL, '2' 
-	JE place2	; check input and jmp to next line  
+    CMP AL, '2' 
+    ;call place2	; check input and jmp to next line  
 
 	
-	CMP AL, '3' 
-	JE loanpage ; check input and jmp to next line  
+    CMP AL, '3' 
+    JE loanpage ; check input and jmp to next line  
 
-	CMP AL, '4'
-	call Mainmenu ; check input and jmp to next line 
+    CMP AL, '4'
+    JE back ; check input and jmp to next line 
 
-	jmp	invalid_loan
+    jmp invalid_loan
 
+back:
+        call Mainmenu
+        
 invalid_loan:
 	mov	ah, 09h
 	lea	dx, invalidStr
 	int	21h
 
 	jmp	interest_loan
+
+
+generate_statement:
+	mov	ah, 09h
+	;lea	dx, statementMenuStr this one didn't have this varible
+	int	21h
+
+	mov	cx, 6
+	mov	si, 0
+
+input_acc:
+	mov	ah, 01h
+	int	21h
+
+	mov	accNum[si], al
+	inc	si
+	loop	input_acc
+
+	mov	cx, 6
+	mov	si, 0
+
+check_acc:
+	cmp	accNum[si], '0'
+	jb	error
+
+	cmp	accNum[si], '9'
+	ja	error
+
+	inc	si
+	loop	check_acc
+
+error:
+	mov	ah, 09h
+	lea	dx, invalidStr
+	int	21h
+
+	jmp	generate_statement
+
+acc_found:
+	mov	ah, 09h
+	lea	dx, accFoundStr
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, pressKeyStr
+	int	21h
+
+	mov	ah, 01h
+	int	21h
+	jmp 	Mainmenu			; generate statement here
+
+acc_not_found:
+	mov	ah, 09h
+	lea	dx, accNotFound
+	int	21h
+
+
+	jmp	Mainmenu
 
 ;====== Display layout=====
 

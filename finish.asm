@@ -55,6 +55,70 @@ Title BankInterestAssignment
 	logoutStr	db	10,13,"Logging out... $"
 	accNum		db	4 dup(?)
 
+;--------------------------------Account Detail----------------------------------------------
+logo_account        db 13,10,"=========================="
+                        db 13,10,"        .--------."
+                        db 13,10,"        |   O    |"
+                        db 13,10,"        |  /|\   |"
+                        db 13,10,"        |  / \   |"
+                        db 13,10,"        '--------'"
+                        db 13,10,"      ACCOUNT MANAGEMENT"
+                        db 13,10,"==========================$"
+
+    msg_account_acc         db 13,10,"=========================="
+                        db 13,10,"    Account Management"
+                        db 13,10,"==========================$"
+
+    msg_view            db 13,10,"1. View Account Details$"
+    msg_update          db 13,10,"2. Update Account$"
+    msg_change          db 13,10,"3. Change Password$"
+    msg_back            db 13,10,"4. Back$"
+
+    msg_choice1         db 13,10,"Enter your choice (1 to 4) : $"
+
+    msg_details         db 13,10,"=========================="
+                        db 13,10,"      Account Details"
+                        db 13,10,"==========================$"
+    msg_username1       db 13,10,"Username        : $"
+    msg_email1          db 13,10,"Email           : $"
+    msg_phone1          db 13,10,"Phone Number    : $"
+    msg_current_acc         db 13,10,"Current Balance : RM $"
+    msg_return1         db 13,10,13,10
+                        db "Press ENTER to return to Account Management...$"
+
+    msg_updateacc       db 13,10,"=========================="
+                        db 13,10,"      Update Account"
+                        db 13,10,"==========================$"
+    msg_username2       db 13,10,"1. Username$"
+    msg_phone2          db 13,10,"2. Phone Number$"
+    msg_email2          db 13,10,"3. Email$"
+    msg_back2           db 13,10,"4. Back$"
+    msg_choice2         db 13,10,"Enter your choice (1 to 4) : $"
+    msg_invalid_acc         db 13,10,"Invalid choice! Please try again!$"
+    msg_currentname     db 13,10,"Current Username     : $"
+    msg_newname         db 13,10,"New Username         : $"
+    msg_currentphone    db 13,10,"Current Phone Number : $"
+    msg_newphone        db 13,10,"New Phone Number     : $"
+    msg_currentemail    db 13,10,"Current Email        : $"
+    msg_newemail        db 13,10,"New Email            : $"
+    msg_updatesuccess   db 13,10,"Update successful!$"
+    msg_invalid2        db 13,10,"Username cannot be same as current!$"
+    msg_invalid3        db 13,10,"Phone number cannot be same as current!$"
+    msg_invalid4        db 13,10,"Email cannot be same as current!$"
+    msg_empty           db 13,10,"Input cannot be empty!$"
+    msg_invalidemail    db 13,10,"Invalid email! Please enter correct email!$"
+
+    msg_changepass      db 13,10,"=========================="
+                        db 13,10,"      Change Password"
+                        db 13,10,"==========================$"
+    msg_currentpass     db 13,10,"Current Password : $"
+    msg_newpass         db 13,10,"New Password     : $"
+    msg_confirmpass     db 13,10,"Confirm Password : $"
+    msg_invalid5        db 13,10,"Password must contain uppercase, lowercase, special character and number!$"
+    msg_updatesuccess2  db 13,10,"Update successful!$"
+    msg_invalid6        db 13,10,"Password cannot be same as current!$"
+    msg_invalid7        db 13,10,"Password does not match!$"
+    msg_wrongpass       db 13,10,"Current password is incorrect!$"
 
 ;---------------------------------Login-------------------------------------------------------	
 logo1   db 10,13,"============================================================$"
@@ -160,6 +224,26 @@ file_phone          db 16 dup(0)	;store phone read from user.txt
 file_email          db 31 dup(0)	;store email from user.txt
 
 ;--------------------------------Joey Data-----------------------------------------------
+
+    current_balance     dw 0
+
+    acc_username        db 21 dup(0)
+    acc_phone           db 16 dup(0)
+    acc_email           db 31 dup(0)
+
+    acc_currentpass     db 21 dup(0)
+    acc_newpass         db 21 dup(0)
+    acc_confirmpass     db 21 dup(0)
+
+    acc_has_upper       db 0
+    acc_has_lower       db 0
+    acc_has_number      db 0
+    acc_has_special     db 0
+
+    acc_has_at          db 0
+    acc_has_dot         db 0
+
+    balance_digit       db 6 dup(0)
 ;----------------------------------------------------------------------------------------
 
 ;-------------------------------- Xin Jie Data----------------------------------------

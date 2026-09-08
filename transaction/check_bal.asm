@@ -3,241 +3,249 @@ title	Check balance system
 .model	small
 .stack	64
 .data
-	msg1	db	10,13,"------------------------- $"
-	msg2	db	10,13,"       CHECK BALANCE       $"
-	msg3	db	10,13,"------------------------- $"
-	msg4	db	10,13,"Enter account number: $"
-	msg5	db	10,13,"Account found. $"
-	msg6	db	10,13,"Current Balance: RM$"
-	msg7	db	10,13,10,13,"Invalid input! Please enter numeric number. $"
-	msg8	db	10,13,"Account not found! $"
+    chk1	db	10,13,"------------------------- $"
+	chk2	db	10,13,"       CHECK BALANCE       $"
+	chk3	db	10,13,"------------------------- $"
+	chk4	db	10,13,"Enter account number: $"
+	chk5	db	10,13,"Account found. $"
+	chk6	db	10,13,"Current Balance: RM$"
+	chk7	db	10,13,10,13,"Invalid input! Please enter numeric number. $"
+	chk8	db	10,13,"Account not found! $"
+	chk9	db	10,13,"Transaction file error! $"
 
+	found_flag	db	0
 	acc_num	dw	?
 	balance	dw	?
 	vinput	db	4 dup(?)
 
-	filename	db	"account.txt",0
-	filehandle	dw	?
+	filename2	db	"transaction.txt",0
+	filehandle2	dw	?
 
-	acc_buffer	db	512 dup(?)
-	acc_size	dw	?
+	trans_buffer	db	1024 dup(?)
+	trans_size	dw	?
 
 ;***********************************************************************************************
 .code
 	main	proc	far
 
-	mov	ax, @data
-	mov	ds, ax
+	mov		ax, @data
+	mov		ds, ax
 
-	mov	ah, 09h				; display check balance title
-	lea	dx, msg1
-	int	21h
+	mov		ah, 09h				; display check balance title
+	lea		dx, chk1
+	int		21h
 
-	mov	ah, 09h
-	lea	dx, msg2
-	int	21h
+	mov		ah, 09h
+	lea		dx, chk2
+	int		21h
 
-	mov	ah, 09h
-	lea	dx, msg3
-	int	21h
+	mov		ah, 09h
+	lea		dx, chk3
+	int		21h
 
-	lea	dx, msg4			; enter account number
-	mov	ah, 09h
-	int	21h
+	mov		ah, 09h
+	lea		dx, chk4			; enter account number
+	int		21h
 
-	mov	cx, 4
-	mov	si, 0
+	mov		cx, 4
+	mov		si, 0
 
-input_acc:
-	mov	ah, 01h
-	int	21h
+input_check_acc:
+	mov		ah, 01h
+	int		21h
 
-	cmp	al, '0'
-	call	invalid
+	cmp		al, '0'
+	jb		check_invalid
 
-	cmp	al, '9'
-	call	invalid
+	cmp		al, '9'
+	ja		check_invalid
 
-	mov	vinput[si], al
-	inc	si
-	loop	input_acc
+	mov		vinput[si], al
+	inc		si
+	loop	input_check_acc
 
-    	mov 	al, vinput[0]
-    	sub 	al, 30h
-	mov	ah, 0
-
-	mov	bx, 1000
-	mul	bx
-	mov	acc_num, ax
-
-    	mov 	al, vinput[1]
-    	sub 	al, 30h
-	mov	ah, 0
-
-	mov	bx, 100
-	mul	bx
-	mov	acc_num, ax
-
-    	mov 	al, vinput[2]
-    	sub 	al, 30h
-	mov	ah, 0
-
-	mov	bx, 10
-	mul	bx
-	mov	acc_num, ax
-
-    	mov 	al, vinput[3]
-    	sub 	al, 30h
-	mov	ah, 0
-
-	add	acc_num, ax
-
-	mov	ah, 3Dh				; open account.txt
-	mov	al, 0
+	mov		ah, 3Dh				; open transaction.txt
+	mov		al, 0
 	
-	lea	dx, filename
-	int	21h
-
-	call	file_error
-	mov	filehandle, ax
+	lea		dx, filename2
+	int		21h
 	
-	mov	bx, filehandle			; read account.txt
-	mov	ah, 3Fh
+	jc		check_file_error
+	mov		filehandle2,ax
 
-	mov	cx, 512
-	lea	dx, acc_buffer
-	int	21h
+	mov		ah, 3Fh
+	mov		bx, filehandle2			; read transaction.txt
+	mov		cx, 1024
+
+	lea		dx, trans_buffer
+	int		21h
 	
-	call	file_error
-	mov	acc_size, ax
+	jc		check_file_error
+	mov		trans_size, ax
 
-	mov	ah, 3Eh				; close account.txt
-	mov	bx, filehandle
-	int	21h
+	mov		ah, 3Eh				; close transaction.txt
+	mov		bx, filehandle2
+	int		21h
 
-	mov	si, 0
-	mov	cx, acc_size
+	mov		si, 0					; search transaction record
+	mov		balance, 0
 
-search_acc:
-	cmp	cx, 0
-	je	not_found
-	
-	mov	al, acc_buffer[si]
-	cmp	al, vinput[0]
-	jne	next_char
+search_trans:
+	cmp		si, trans_size
+	jae		trans_not_found
 
-	mov	al, acc_buffer[si+1]
-	cmp	al, vinput[1]
-	jne	next_char
+	cmp		si, 0							; check wheter is begining of new record
+	je		check_acc
 
-	mov	al, acc_buffer[si+1]
-	cmp	al, vinput[2]
-	jne	next_char
+	cmp		trans_buffer[si-1], 0Ah
+	je		check_acc
 
-	mov	al, acc_buffer[si+1]
-	cmp	al, vinput[3]
-	jne	next_char
+	inc		si
+	jmp		search_trans
 
-	mov	ah, 09h					; account found
-	lea	dx, msg5
-	int	21h
+check_acc:
+	mov		di, 0
+	mov		bx, si
 
-	jmp	get_balance
+compare_check_acc:
+	mov		al, trans_buffer[bx]
+	cmp		al, vinput[di]
+	jne		check_not_match
 
-next_char:
-	inc	si
-	dec	cx
-	jmp	search_acc
+	inc		bx
+	inc		di
 
-get_balance:
-	add	si, 5
-	
-find_balance:
-	cmp	acc_buffer[si], ','
-	je	balance_start
-	
-	inc	si
-	jmp	find_balance
+	cmp		di, 4
+	jne		compare_check_acc
 
-balance_start:
-	inc	si
-	mov	balance, 0
+	cmp		trans_buffer[bx], ','				; after acc number must be ","
+	jne		check_not_match
 
-read_balance:
-	mov	al, acc_buffer[si]
-	
-	cmp	al, 13
-	je	display_balance
+	mov		found_flag, 1
 
-	cmp	al, 10
-	je	display_balance
+	mov		ah, 09H							; account found
+	lea		dx, chk5
+	int		21H
 
-	sub	al, 30h
-	mov	ah, 0
-	
-	mov	bx, ax
-	mov	ax, balance
+	mov		si, bx
+	inc		si
 
-	mov	dx, 10
-	mul	dx
+find_type_end:
+    cmp     si, trans_size					; skip transaction type
+    jae     trans_not_found
 
-	add	ax, bx
-	mov	balance, ax
+    cmp     trans_buffer[si], ","
+    je      find_amt_start
 
-	inc	si
-	jmp	read_balance
+    inc     si
+    jmp     find_type_end
 
-display_balance:
-	mov	ah, 09h
-	lea	dx, msg6
-	int	21h
+find_amt_start:
+    inc     si							; skip amount field
 
-	mov	ax, balance
-	call	display_num
+find_amt_end:
+    cmp     si, trans_size
+    jae     trans_not_found
 
-	jmp	exit
+    cmp     trans_buffer[si], ","
+    je      read_check_bal
 
-not_found:
-	mov	ah, 09h				; account not found
-	lea	dx, msg7
-	int	21h
+    inc     si
+    jmp     find_amt_end
 
-	jmp	exit
+read_check_bal:
+	inc		si									; read new balance
+	mov		balance, 0
 
-invalid:
-	mov	ah, 09h				; invalid input
-	lea	dx, msg8
-	int	21h
+read_balance_digit:
+    cmp     si, trans_size
+    jae     save_check_balance
 
-	jmp	exit
+    mov     bl, trans_buffer[si]
 
-file_error:
-	mov	ah, 09h
-	lea	dx, msg8
-	int	21h
+    cmp     bl, ","
+    jae      save_check_balance
 
-	jmp	exit
+    cmp     al, 0Dh
+    jae      save_check_balance
+
+    cmp     al, 0Ah
+    jae      save_check_balance
+
+    sub     al, "0"
+    mov     bh, 0
+
+    mov     dx, 10
+    mul     dx
+    add     ax, bx
+
+    inc     si
+    jmp     read_balance_digit
+
+save_check_balance:
+	mov		balance, ax
+    jmp     search_trans
+
+check_not_match:
+	inc		si
+	jmp		search_trans
+
+check_not_found:
+    cmp     found_flag, 0
+    je      check_acc_not_found
+
+    mov     ah, 09h
+    lea     dx, chk6						; display balance
+    int     21h
+
+    mov     ax, balance
+    call    display_num
+
+    jmp     transaction
+
+check_invalid:
+	mov		ah, 09h				; invalid input
+	lea		dx, chk7
+	int		21h
+
+	jmp		transaction
+
+check_acc_not_found:
+	mov		ah, 09h				; account not found
+	lea		dx, chk8
+	int		21h
+
+	jmp		transaction
+
+check_file_error:
+	mov		ah, 09h
+	lea		dx, chk9
+	int		21h
+
+	jmp		transaction
+
+check_bal endp
 
 display_num proc			; display number
-	mov	bx, 10
-	mov	cx, 0
+	mov		bx, 10
+	mov		cx, 0
 
 convert_num:
-	mov	dx, 0
-	div	bx
+	mov		dx, 0
+	div		bx
 
 	push	dx
-	inc	cx
+	inc		cx
 
-	cmp	ax, 0
-	jne	convert_num
+	cmp		ax, 0
+	jne		convert_num
 
 print_num:	
-	pop	dx
-	add	dl, "0"
+	pop		dx
+	add		dl, "0"
 
-	mov	ah, 02h
-	int	21h
+	mov		ah, 02h
+	int		21h
 
 	loop	print_num
 	ret
@@ -245,8 +253,8 @@ print_num:
 display_num endp
 
 exit:	
-	mov	ax, 4c00h
-	int	21h
+	mov		ax, 4c00h
+	int		21h
 
 	main	endp
 end	main

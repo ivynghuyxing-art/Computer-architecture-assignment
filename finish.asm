@@ -228,19 +228,19 @@ withdraw_title1		db	10,13,"========================================= $"
 withdraw_title2		db	10,13,"                 WITHDRAW                 $"
 withdraw_title3		db	10,13,"========================================= $"
 
-wd_msg2		db	10,13,"Enter account number: $"
-wd_msg3		db	10,13,"Account found. $"
-wd_msg4		db	10,13,"Current Balance: RM$"
-wd_msg5		db	10,13,"Enter withdrawal amount: RM$"
-wd_msg6		db	10,13,10,13,"Withdrawal successful! $"
-wd_msg7		db	10,13,"Current Balance: RM$"
-wd_msg8		db	10,13,"Withdrawal Amount: RM$"
-wd_msg9		db	10,13,"New Balance: RM$"
-wd_msg10	db	10,13,"Account balance updated successfully! $"
-wd_msg11	db	10,13,10,13,"Invalid input! Please enter numeric number. $"
-wd_msg12	db	10,13,"Account not found! $"
-wd_msg13	db	10,13,"Transaction file error! $"
-wd_msg14	db	10,13,10,13,"Error! Insufficient balance! $"
+wd_msg1		db	10,13,"Enter account number: $"
+wd_msg2		db	10,13,"Account found. $"
+wd_msg3		db	10,13,"Current Balance: RM$"
+wd_msg4		db	10,13,"Enter withdrawal amount: RM$"
+wd_msg5		db	10,13,10,13,"Withdrawal successful! $"
+wd_msg6		db	10,13,"Current Balance: RM$"
+wd_msg7		db	10,13,"Withdrawal Amount: RM$"
+wd_msg8		db	10,13,"New Balance: RM$"
+wd_msg9		db	10,13,"Account balance updated successfully! $"
+wd_msg10	db	10,13,10,13,"Invalid input! Please enter numeric number. $"
+wd_msg11	db	10,13,"Account not found! $"
+wd_msg12	db	10,13,"Transaction file error! $"
+wd_msg13	db	10,13,10,13,"Error! Insufficient balance! $"
 ;----------------------------------------------------------------------------------------
 
 ;--------------------------------Emily Data----------------------------------------------
@@ -2317,8 +2317,40 @@ file_error:
 	jmp	transaction ; cannot find file exit 
 
 display_num proc			; display number
-	mov	bx, 10
-	mov	cx, 0
+    cmp ax, 0
+    jne display_num_convert
+
+    mov dl, '0'
+    mov ah, 02h
+    int 21h
+    ret
+
+display_num_convert:
+    mov bx, 10
+    xor cx, cx
+
+display_num_divide:
+    xor dx, dx
+    div bx
+
+    push dx
+    inc cx
+
+    cmp ax, 0
+    jne display_num_divide
+
+display_num_print:
+    pop dx
+    add dl, '0'
+
+    mov ah, 02h
+    int 21h
+
+    loop display_num_print
+
+    ret
+
+display_num endp
 
 convert_num:
 	mov	dx, 0
@@ -2409,603 +2441,651 @@ withdraw:
 	int	21h
  
 	mov	ah, 09h			; enter account number
-	lea	dx, wd_msg2
+	lea	dx, wd_msg1
 	int	21h
- 
-	mov	cx, 4
+
 	mov	si, 0
  
 wd_input_acc:
 	mov	ah, 01h
 	int	21h
  
-	mov	vinput[si], al
-	inc	si
-	loop	wd_input_acc
- 
-	mov	cx, 4			; check account number is numeric
-	mov	si, 0
- 
-wd_check_acc:
-	cmp	vinput[si], "0"
-	jae	wd_valid_digit1
-	jmp	wd_error
- 
-wd_valid_digit1:
-	cmp	vinput[si], "9"
-	jbe	wd_valid_digit2
-	jmp	wd_error
- 
-wd_valid_digit2:
-	inc	si
-	loop	wd_check_acc
- 
-	mov	ax, 0			; convert account number
-	mov	si, 0
-	mov	cx, 4
+	    cmp al,0Dh
+    je wd_acc_done
+
+    cmp al,'0'
+    jb wd_error
+
+    cmp al,'9'
+    ja wd_error
+
+    cmp si,4
+    jae wd_error
+
+    mov vinput[si],al
+    mov acc_input[si],al
+    inc si
+
+    jmp wd_input_acc
+
+wd_acc_done:
+    cmp si,4
+    jne wd_error
+
+    mov byte ptr vinput[4], '$'
+
+    ; convert account number to number
+    mov si,0
+    xor ax,ax
  
 wd_convert_acc:
 	mov	bl, vinput[si]
 	sub	bl, "0"
- 
-	mov	bh, 0
+	xor	bh, bh
+
 	mov	dx, 10
 	mul	dx
- 
 	add	ax, bx
-	inc	si
-	loop	wd_convert_acc
  
-	mov	acc_num, ax
- 
-	mov	ah, 3Dh			; open account.txt
-	mov	al, 2
- 
-	lea	dx, filename
-	int	21h
- 
-	jnc	wd_file_open_ok
-	jmp	wd_error
- 
-wd_file_open_ok:
-	mov	filehandle, ax
- 
-	mov	ah, 3Fh			; read account.txt
-	mov	bx, filehandle
-	mov	cx, 512
- 
-	lea	dx, acc_buffer
-	int	21h
- 
-	jnc	wd_acc_read_ok
-	jmp	wd_acc_file_error
- 
-wd_acc_read_ok:
-	mov	acc_size, ax
- 
-	mov	ah, 3Eh
-	mov	bx, filehandle
-	int	21h
- 
-	mov	si, 0
-	mov	cx, acc_size
- 
-wd_search_acc:
-	cmp	cx, 0
-	jne	wd_search_ok1
-	jmp	wd_acc_not_found
- 
-wd_search_ok1:
-	cmp	acc_buffer[si], ","		; look for 1st comma
-	jne	wd_next_acc_char
- 
-	inc	si
-	dec	cx
- 
-wd_search_second_comma:
-	cmp	cx, 0				; look for 2nd comma
-	jne	wd_search_ok2
-	jmp	wd_acc_not_found
- 
-wd_search_ok2:
-	cmp	acc_buffer[si], ","
-	je	wd_check_acc_num
- 
-	inc	si
-	dec	cx
-	jmp	wd_search_second_comma
- 
-wd_check_acc_num:
-	inc	si
-	dec	cx
- 
-	cmp	cx, 4
-	jae	wd_size_ok
-	jmp	wd_acc_not_found
- 
-wd_size_ok:
-	mov	di, 0
-	mov	bx, si
- 
-wd_compare_acc:
-	mov	al, acc_buffer[bx]
-	cmp	al, vinput[di]
-	jne	wd_num_not_match
- 
-	inc	bx
-	inc	di
- 
-	cmp	di, 4
-	jne	wd_compare_acc
- 
-	jmp	wd_acc_found			; Account found
- 
-wd_num_not_match:
-	mov	si, bx				; Continue searching
- 
-wd_next_acc_char:
-	inc	si
-	dec	cx
-	jmp	wd_search_acc
- 
+    inc si
+    cmp si,4
+    jne wd_convert_acc
+
+    mov acc_num,ax
+
+    ; open account.txt
+    mov ah,3Dh
+    mov al,0
+    lea dx,account_file
+    int 21h
+    jc wd_acc_not_found
+
+    mov filehandle,bx
+
+    ; read account.txt
+    mov ah,3Fh
+    mov bx,filehandle
+    mov cx,200
+    lea dx,buffer
+    int 21h
+    jc wd_acc_not_found
+
+    mov buffer_size,ax
+
+    ; close account.txt
+    mov ah,3Eh
+    mov bx,filehandle
+    int 21h
+
+    ; find account number
+    mov si,0
+
+wd_find_account:
+    cmp si,buffer_size
+    jae wd_acc_not_found
+
+    ; find first comma
+wd_find_comma:
+    cmp si,buffer_size
+    jae wd_acc_not_found
+
+    mov al,buffer[si]
+
+    cmp al,','
+    je wd_check_account
+
+    inc si
+    jmp wd_find_comma
+
+wd_check_account:
+    inc si
+
+    xor ax,ax
+
+wd_read_account_digits:
+    cmp si,buffer_size
+    jae wd_acc_not_found
+
+    mov dl,buffer[si]
+
+    cmp dl,','
+    je wd_account_compare
+
+    cmp dl,0Dh
+    je wd_account_compare
+
+    cmp dl,0Ah
+    je wd_account_compare
+
+    cmp dl,'0'
+    jb wd_next_account_record
+
+    cmp dl,'9'
+    ja wd_next_account_record
+
+    sub dl,'0'
+    xor dh,dh
+
+    push dx
+
+    mov bx,10
+    mul bx
+
+    pop dx
+    add ax,dx
+
+    inc si
+    jmp wd_read_account_digits
+
+wd_account_compare:
+    cmp ax,acc_num
+    je wd_acc_found
+
+wd_next_account_record:
+    ; move to next line
+    cmp si,buffer_size
+    jae wd_acc_not_found
+
+    cmp buffer[si],0Ah
+    je wd_next_line
+
+    inc si
+    jmp wd_next_account_record
+
+wd_next_line:
+    inc si
+    jmp wd_find_account
+
+
 wd_acc_found:
-	mov	ah, 09h				; account found
-	lea	dx, wd_msg3
-	int	21h
- 
-	mov	ah, 3Dh				; open transaction.txt
-	mov	al, 0
- 
-	lea	dx, filename2
-	int	21h
- 
-	jnc	wd_trans_open_ok
-	jmp	wd_trans_file_error
- 
-wd_trans_open_ok:
-	mov	filehandle2, ax
- 
-	mov	ah, 3Fh				; read transaction.txt
-	mov	bx, filehandle2
-	mov	cx, 1024
- 
-	lea	dx, trans_buffer
-	int	21h
- 
-	jnc	wd_trans_read_ok
-	jmp	wd_trans_file_error
- 
-wd_trans_read_ok:
-	mov	trans_size, ax
- 
-	mov	ah, 3Eh				; close transaction.txt
-	mov	bx, filehandle2
-	int	21h
- 
-	mov	si, 0
-	mov	balance, 0
- 
+
+    mov ah,09h
+    lea dx,wd_msg2
+    int 21h
+
+    ; open transaction.txt
+    mov ah,3Dh
+    mov al,0
+    lea dx,transaction_file
+    int 21h
+    jc wd_trans_file_error
+
+    mov filehandle2,ax
+
+    mov ah,3Fh
+    mov bx,filehandle2
+    mov cx,500
+    lea dx,trans_buffer
+    int 21h
+    jc wd_trans_file_error
+
+    mov trans_size,ax
+
+    mov ah,3Eh
+    mov bx,filehandle2
+    int 21h
+
+
+    ; find latest balance for this account
+    mov si,0
+    mov balance,0
+
 wd_search_trans:
-	cmp	si, trans_size
-	jb	wd_search_con1
-	jmp	wd_search_done
- 
-wd_search_con1:
-	cmp	si, 0
-	je	wd_check_trans_acc
- 
-	cmp	trans_buffer[si-1], 0Dh
-	je	wd_check_trans_acc
- 
-	cmp	trans_buffer[si-1], 0Ah
-	je	wd_check_trans_acc
- 
-	inc	si
-	jmp	wd_search_trans
- 
-wd_check_trans_acc:
-	mov	ax, trans_size
-	sub	ax, si
- 
-	cmp	ax, 5
-	jae	wd_search_con2
-	jmp	wd_search_done
- 
-wd_search_con2:
-	mov	di, 0				; Compare account number
-	mov	bx, si
- 
+
+    cmp si,trans_size
+    jae wd_search_done
+
+    ; read account number from transaction record
+    xor ax,ax
+
+wd_trans_acc_loop:
+
+    cmp si,trans_size
+    jae wd_search_done
+
+    mov dl,trans_buffer[si]
+
+    cmp dl,','
+    je wd_compare_trans_acc
+
+    cmp dl,'0'
+    jb wd_skip_trans_line
+
+    cmp dl,'9'
+    ja wd_skip_trans_line
+
+    sub dl,'0'
+    xor dh,dh
+
+    push dx
+
+    mov bx,10
+    mul bx
+
+    pop dx
+    add ax,dx
+
+    inc si
+    jmp wd_trans_acc_loop
+
+
 wd_compare_trans_acc:
-	mov	al, trans_buffer[bx]
-	cmp	al, vinput[di]
-	jne	wd_trans_not_match
- 
-	inc	bx
-	inc	di
- 
-	cmp	di, 4
-	jne	wd_compare_trans_acc
- 
-	cmp	trans_buffer[bx], ","
-	jne	wd_trans_not_match
- 
-	mov	si, bx				; Account number matches
-	inc	si				; Now find balance
- 
-wd_find_type_end:
-	cmp	si, trans_size
-	jb	wd_find_type_con1
-	jmp	wd_search_done
- 
-wd_find_type_con1:
-	cmp	trans_buffer[si], ","
-	je	wd_find_amt_end
- 
-	inc	si
-	jmp	wd_find_type_end
- 
-wd_find_amt_end:
-	inc	si
- 
-wd_find_third_comma:
-	cmp	si, trans_size
-	jb	wd_third_comma_con1
-	jmp	wd_search_done
- 
-wd_third_comma_con1:
-	cmp	trans_buffer[si], ","
-	je	wd_read_balance
- 
-	inc	si
-	jmp	wd_find_third_comma
- 
+
+    cmp ax,acc_num
+    je wd_matching_transaction
+
+    ; not this account
+wd_skip_trans_line:
+
+    cmp si,trans_size
+    jae wd_search_done
+
+    cmp trans_buffer[si],0Ah
+    je wd_next_trans_record
+
+    inc si
+    jmp wd_skip_trans_line
+
+wd_next_trans_record:
+
+    inc si
+    jmp wd_search_trans
+
+
+wd_matching_transaction:
+
+    ; skip TransactionType field
+    inc si
+
+wd_skip_type:
+    cmp si,trans_size
+    jae wd_search_done
+
+    cmp trans_buffer[si],','
+    je wd_start_amount
+
+    inc si
+    jmp wd_skip_type
+
+
+wd_start_amount:
+
+    ; skip Amount field
+    inc si
+
+wd_skip_amount:
+    cmp si,trans_size
+    jae wd_search_done
+
+    cmp trans_buffer[si],','
+    je wd_start_balance
+
+    inc si
+    jmp wd_skip_amount
+
+
+wd_start_balance:
+
+    inc si
+    xor ax,ax
+
 wd_read_balance:
-	inc	si
-	mov	ax, 0
- 
-wd_read_balance_digit:
-	cmp	si, trans_size
-	jae	wd_save_balance
- 
-	mov	bl, trans_buffer[si]
- 
-	cmp	bl, ","
-	je	wd_save_balance
- 
-	cmp	bl, 0Dh
-	je	wd_save_balance
- 
-	cmp	bl, 0Ah
-	je	wd_save_balance
- 
-	sub	bl, "0"
-	mov	bh, 0
- 
-	mov	dx, 10
-	mul	dx
- 
-	add	ax, bx
-	inc	si
-	jmp	wd_read_balance_digit
- 
+
+    cmp si,trans_size
+    jae wd_save_balance
+
+    mov dl,trans_buffer[si]
+
+    cmp dl,','
+    je wd_save_balance
+
+    cmp dl,0Dh
+    je wd_save_balance
+
+    cmp dl,0Ah
+    je wd_save_balance
+
+    cmp dl,'0'
+    jb wd_save_balance
+
+    cmp dl,'9'
+    ja wd_save_balance
+
+    sub dl,'0'
+    xor dh,dh
+
+    push dx
+
+    mov bx,10
+    mul bx
+
+    pop dx
+    add ax,dx
+
+    inc si
+    jmp wd_read_balance
+
+
 wd_save_balance:
-	mov	balance, ax
-	jmp	wd_search_trans
- 
-wd_trans_not_match:
-	inc	si
-	jmp	wd_search_trans
- 
+
+    mov balance,ax
+
+    ; move to next transaction record
+    cmp si,trans_size
+    jae wd_search_done
+
+    cmp trans_buffer[si],0Ah
+    je wd_next_trans_after_balance
+
+    inc si
+    jmp wd_save_balance
+
+wd_next_trans_after_balance:
+
+    inc si
+    jmp wd_search_trans
+
+
 wd_search_done:
-	mov	ah, 09h				; display current balance
-	lea	dx, wd_msg2
-	int	21h
- 
-	mov	ax, balance
-	call	display_num
- 
-	mov	ah, 09h				; enter withdrawal amount
-	lea	dx, wd_msg3
-	int	21h
- 
-	mov	cx, 4
-	mov	si, 0
- 
-wd_input_withdraw:
-	mov	ah, 01h
-	int	21h
- 
-	mov	vinput[si], al
-	inc	si
-	loop	wd_input_withdraw
- 
-	mov	cx, 4				; check withdrawal input
-	mov	si, 0
- 
-wd_check_withdraw:
-	cmp	vinput[si], "0"
-	jae	wd_digit_ok1
-	jmp	wd_error
- 
-wd_digit_ok1:
-	cmp	vinput[si], "9"
-	jbe	wd_digit_ok2
-	jmp	wd_error
- 
-wd_digit_ok2:
-	inc	si
-	loop	wd_check_withdraw
- 
-	mov	ax, 0				; convert withdrawal amount
-	mov	si, 0
-	mov	cx, 4
- 
-wd_convert_withdraw:
-	mov	bl, vinput[si]
-	sub	bl, "0"
- 
-	mov	bh, 0
-	mov	dx, 10
-	mul	dx
- 
-	add	ax, bx
-	inc	si
-	loop	wd_convert_withdraw
- 
-	mov	withdraw_amount, ax
- 
-	cmp	ax, balance			; check sufficient balance
-	ja	wd_insufficient
- 
-	mov	ax, balance			; withdrawal calculation
-	sub	ax, withdraw_amount
-	mov	newbalance, ax
- 
-	mov	ah, 09h				; display withdrawal successful
-	lea	dx, wd_msg2
-	int	21h
- 
-	mov	ah, 09h				; current balance
-	lea	dx, wd_msg3
-	int	21h
- 
-	mov	ax, balance
-	call	display_num
- 
-	mov	ah, 09h				; withdrawal amount
-	lea	dx, wd_msg2
-	int	21h
- 
-	mov	ax, withdraw_amount
-	call	display_num
- 
-	mov	ah, 09h				; display new balance
-	lea	dx, wd_msg3
-	int	21h
- 
-	mov	ax, newbalance
-	call	display_num
- 
-	lea	di, trans_record		; create new transaction record
-	mov	si, 0
-	mov	cx, 4
- 
-wd_copy_acc_num:
-	mov	al, vinput[si]
-	mov	[di], al
- 
-	inc	si
-	inc	di
-	loop	wd_copy_acc_num
- 
-	mov	al, ","
-	mov	[di], al
-	inc	di
- 
-	mov	al, "W"				; "Withdrawal"
-	mov	[di], al
-	inc	di
-	mov	al, "i"
-	mov	[di], al
-	inc	di
-	mov	al, "t"
-	mov	[di], al
-	inc	di
-	mov	al, "h"
-	mov	[di], al
-	inc	di
-	mov	al, "d"
-	mov	[di], al
-	inc	di
-	mov	al, "r"
-	mov	[di], al
-	inc	di
-	mov	al, "a"
-	mov	[di], al
-	inc	di
-	mov	al, "w"
-	mov	[di], al
-	inc	di
-	mov	al, "a"
-	mov	[di], al
-	inc	di
-	mov	al, "l"
-	mov	[di], al
-	inc	di
- 
-	mov	al, ","
-	mov	[di], al
-	inc	di
- 
-	mov	ax, withdraw_amount
-	mov	bx, 10
-	mov	cx, 0
- 
-wd_convert_amt_record:
-	mov	dx, 0
-	div	bx
- 
-	push	dx
-	inc	cx
- 
-	cmp	ax, 0
-	jne	wd_convert_amt_record
- 
-wd_print_amt_record:
-	pop	dx
-	add	dl, "0"
- 
-	mov	[di], dl
-	inc	di
-	loop	wd_print_amt_record
- 
-	mov	al, ","
-	mov	[di], al
-	inc	di
- 
-	mov	ax, newbalance
-	mov	bx, 10
-	mov	cx, 0
- 
-wd_convert_newbal_record:
-	mov	dx, 0
-	div	bx
- 
-	push	dx
-	inc	cx
- 
-	cmp	ax, 0
-	jne	wd_convert_newbal_record
- 
-wd_print_newbal_record:
-	pop	dx
-	add	dl, "0"
- 
-	mov	[di], dl
-	inc	di
-	loop	wd_print_newbal_record
- 
-	mov	al, ","
-	mov	[di], al
-	inc	di
- 
-	mov	al, "0"				; date (edit as needed)
-	mov	[di], al
-	inc	di
-	mov	al, "3"
-	mov	[di], al
-	inc	di
-	mov	al, "/"
-	mov	[di], al
-	inc	di
-	mov	al, "0"
-	mov	[di], al
-	inc	di
-	mov	al, "9"
-	mov	[di], al
-	inc	di
-	mov	al, "/"
-	mov	[di], al
-	inc	di
-	mov	al, "2"
-	mov	[di], al
-	inc	di
-	mov	al, "0"
-	mov	[di], al
-	inc	di
-	mov	al, "2"
-	mov	[di], al
-	inc	di
-	mov	al, "6"
-	mov	[di], al
-	inc	di
- 
-	mov	al, 0Dh
-	mov	[di], al
-	inc	di
-	mov	al, 0Ah
-	mov	[di], al
-	inc	di
- 
-	mov	ax, di
-	lea	bx, trans_record
-	sub	ax, bx
-	mov	trans_length, ax
- 
-	mov	ah, 3Dh
-	mov	al, 2				; read/write
- 
-	lea	dx, filename2
-	int	21h
- 
-	jc	wd_trans_file_error
-	mov	filehandle2, ax
- 
-	mov	ah, 42h
-	mov	al, 2				; from end
- 
-	mov	bx, filehandle2
-	mov	cx, 0
-	mov	dx, 0
-	int	21h
- 
-	jc	wd_trans_file_error
- 
-	mov	ah, 40h
-	mov	bx, filehandle2
-	mov	cx, trans_length
- 
-	lea	dx, trans_record
-	int	21h
-	jc	wd_trans_file_error
- 
-	mov	ah, 3Eh
-	mov	bx, filehandle2
-	int	21h
- 
-	mov	ah, 09h
-	lea	dx, wd_msg2
-	int	21h
- 
-	jmp	transaction
- 
+
+    mov ah,09h
+    lea dx,wd_msg3
+    int 21h
+
+    mov ax,balance
+    call display_num
+
+    mov ah,09h
+    lea dx,wd_msg4
+    int 21h
+
+    ; enter withdrawal amount
+    mov si,0
+
+wd_input_amount:
+
+    mov ah,01h
+    int 21h
+
+    cmp al,0Dh
+    je wd_amount_done
+
+    cmp al,'0'
+    jb wd_error
+
+    cmp al,'9'
+    ja wd_error
+
+    cmp si,4
+    jae wd_error
+
+    mov vinput[si],al
+    inc si
+
+    jmp wd_input_amount
+
+
+wd_amount_done:
+
+    cmp si,0
+    je wd_error
+
+    ; convert withdrawal amount
+    mov si,0
+    xor ax,ax
+
+wd_convert_amount:
+
+    mov bl,vinput[si]
+    sub bl,'0'
+    xor bh,bh
+
+    mov dx,10
+    mul dx
+    add ax,bx
+
+    inc si
+    cmp si,4
+    jne wd_convert_amount
+
+    mov withdraw_amount,ax
+
+    ; check sufficient balance
+    mov ax,withdraw_amount
+    cmp ax,balance
+    ja wd_insufficient
+
+    ; calculate new balance
+    mov ax,balance
+    sub ax,withdraw_amount
+    mov newbalance,ax
+
+
+    ; display result
+    mov ah,09h
+    lea dx,wd_msg5
+    int 21h
+
+    mov ah,09h
+    lea dx,wd_msg6
+    int 21h
+
+    mov ax,balance
+    call display_num
+
+    mov ah,09h
+    lea dx,wd_msg7
+    int 21h
+
+    mov ax,withdraw_amount
+    call display_num
+
+    mov ah,09h
+    lea dx,wd_msg8
+    int 21h
+
+    mov ax,newbalance
+    call display_num
+
+    mov ah,09h
+    lea dx,wd_msg9
+    int 21h
+
+
+    ; append transaction record
+    mov ah,3Dh
+    mov al,2
+    lea dx,transaction_file
+    int 21h
+    jc wd_trans_file_error
+
+    mov filehandle2,ax
+
+    ; move file pointer to end
+    mov ah,42h
+    mov al,2
+    xor cx,cx
+    xor dx,dx
+    mov bx,filehandle2
+    int 21h
+
+
+    ; build transaction record
+    lea di,trans_record
+    mov si,0
+
+    ; account number
+    mov cx,4
+
+wd_copy_acc:
+
+    mov al,acc_input[si]
+    mov [di],al
+
+    inc si
+    inc di
+
+    loop wd_copy_acc
+
+
+    mov al,','
+    mov [di],al
+    inc di
+
+    ; Withdrawal
+    mov byte ptr [di],'W'
+    inc di
+    mov byte ptr [di],'i'
+    inc di
+    mov byte ptr [di],'t'
+    inc di
+    mov byte ptr [di],'h'
+    inc di
+    mov byte ptr [di],'d'
+    inc di
+    mov byte ptr [di],'r'
+    inc di
+    mov byte ptr [di],'a'
+    inc di
+    mov byte ptr [di],'w'
+    inc di
+    mov byte ptr [di],'a'
+    inc di
+    mov byte ptr [di],'l'
+    inc di
+
+    mov al,','
+    mov [di],al
+    inc di
+
+
+    ; withdrawal amount
+    mov ax,withdraw_amount
+    call convert_to_ascii
+
+
+    mov al,','
+    mov [di],al
+    inc di
+
+
+    ; new balance
+    mov ax,newbalance
+    call convert_to_ascii
+
+
+    mov al,','
+    mov [di],al
+    inc di
+
+    ; date
+    mov al,day
+    add al,'0'
+    mov [di],al
+    inc di
+
+    mov al,'/'
+    mov [di],al
+    inc di
+
+    mov al,month
+    add al,'0'
+    mov [di],al
+    inc di
+
+    mov al,'/'
+    mov [di],al
+    inc di
+
+    mov ax,year
+
+    ; year digits
+    mov bx,1000
+    xor dx,dx
+    div bx
+    add al,'0'
+    mov [di],al
+    inc di
+
+    mov ax,year
+    mov bx,100
+    xor dx,dx
+    div bx
+    mov ax,dx
+    mov bx,10
+    xor dx,dx
+    div bx
+    add al,'0'
+    mov [di],al
+    inc di
+
+    add dl,'0'
+    mov [di],dl
+    inc di
+
+    mov byte ptr [di],0Dh
+    inc di
+    mov byte ptr [di],0Ah
+    inc di
+
+
+    ; calculate record length
+    lea ax,trans_record
+    mov bx,di
+    sub bx,ax
+
+    mov cx,bx
+
+    ; write transaction
+    mov ah,40h
+    mov bx,filehandle2
+    lea dx,trans_record
+    int 21h
+
+    ; close transaction file
+    mov ah,3Eh
+    mov bx,filehandle2
+    int 21h
+
+    jmp transaction
+
+
 wd_insufficient:
-	mov	ah, 09h				; not enough balance
-	lea	dx, wd_msg2
-	int	21h
- 
-	jmp	transaction
- 
+
+    mov ah,09h
+    lea dx,wd_msg13
+    int 21h
+
+    jmp transaction
+
+
 wd_error:
-	mov	ah, 09h				; invalid input
-	lea	dx, wd_msg3
-	int	21h
- 
-	jmp	transaction
- 
+
+    mov ah,09h
+    lea dx,wd_msg10
+    int 21h
+
+    jmp transaction
+
+
 wd_acc_not_found:
-	mov	ah, 09h
-	lea	dx, wd_msg2
-	int	21h
- 
-	jmp	transaction
- 
-wd_acc_file_error:
-	mov	ah, 3Eh
-	mov	bx, filehandle
-	int	21h
-	jmp	transaction
- 
+
+    mov ah,09h
+    lea dx,wd_msg11
+    int 21h
+
+    jmp transaction
+
+
 wd_trans_file_error:
-	mov	ah, 09h
-	lea	dx, wd_msg3
-	int	21h
- 
-	mov	ah, 3Eh
-	mov	bx, filehandle2
-	int	21h
- 
-	jmp	transaction
+
+    mov ah,09h
+    lea dx,wd_msg12
+    int 21h
+
+    jmp transaction
+
+withdraw endp
 
 ; ----------------------------------------------- check balance ---------------------------------
 check_bal:

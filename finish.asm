@@ -165,22 +165,22 @@ file_email          db 31 dup(0)	;store email from user.txt
 ;----------------------------------------------------------------------------------------
 
 ;--------------------------------Lim xin jie Data----------------------------------------
-	msg1	db	10,13,"------------------------- $"
-	msg2	db	10,13,"         DEPOSIT          $"
-	msg3	db	10,13,"------------------------- $"
-	msg4	db	10,13,"Enter account number: $"
-	msg5	db	10,13,"Account found. $"
-	msg6	db	10,13,"Current Balance: RM$"
-	msg7	db	10,13,"Enter deposit amount: RM$"
-	msg8	db	10,13,10,13,"Deposit successful! $"
-	msg9	db	10,13,10,13,"Current Balance: RM$"
-	msg10	db	10,13,"Deposit Amount: RM$"
-	msg11	db	10,13,"New Balance: RM$"
-	msg12	db	10,13,"Account balance updated successfully! $"
-	msg13	db	10,13,10,13,"Invalid input! Please enter numeric number. $"
-	msg14	db	10,13,10,13,"Do you want to continue (Y or N): $"
-	msg15	db	10,13,"Account not found! $"
-	msg16	db	10,13,"Transaction file error! $"
+	dep1	db	10,13,"------------------------- $"
+	dep2	db	10,13,"         DEPOSIT          $"
+	dep3	db	10,13,"------------------------- $"
+	dep4	db	10,13,"Enter account number: $"
+	dep5	db	10,13,"Account found. $"
+	dep6	db	10,13,"Current Balance: RM$"
+	dep7	db	10,13,"Enter deposit amount: RM$"
+	dep8	db	10,13,10,13,"Deposit successful! $"
+	dep9	db	10,13,10,13,"Current Balance: RM$"
+	dep10	db	10,13,"Deposit Amount: RM$"
+	dep11	db	10,13,"New Balance: RM$"
+	dep12	db	10,13,"Account balance updated successfully! $"
+	dep13	db	10,13,10,13,"Invalid input! Please enter numeric number. $"
+	dep14	db	10,13,10,13,"Do you want to continue (Y or N): $"
+	dep15	db	10,13,"Account not found! $"
+	dep16	db	10,13,"Transaction file error! $"
 
 	acc_num	dw	?
 	balance	dw	?
@@ -214,9 +214,9 @@ file_email          db 31 dup(0)	;store email from user.txt
 	chk9	db	10,13,"Transaction file error! $"
 
 	found_flag	db	0
-	acc_num	dw	?
-	balance	dw	?
-	vinput	db	4 dup(?)
+	acc_number	dw	?
+	balance_acc	dw	?
+	vninput	db	4 dup(?)
 
 ;--------------------------------Cayenne Data---------------------------------------------
 ;----------------------------------------------------------------------------------------
@@ -1560,7 +1560,7 @@ transaction:
         cmp     al, '4'
         je      deposit_start
 
-        jmp     transaction_menu                ; invalid choice
+        jmp     transaction                ; invalid choice
 
 deposit_start:
         mov	ah, 09h
@@ -1867,14 +1867,14 @@ trans_not_match:
 
 trans_search_done:
 	mov	ah, 09h			; diaplsy current balance
-	lea	dx, msg6
+	lea	dx, dep6
 	int	21h
 
 	mov	ax, balance
 	call	display_num
 
 	mov	ah, 09h			; enter deposit amount
-	lea	dx, msg7
+	lea	dx, dep7
 	int	21h
 
 	mov	cx, 4
@@ -1884,7 +1884,7 @@ input_deposit:
 	mov	ah, 01h
 	int	21h
 
-	mov	vinput[si], al		; input deposit amount
+	mov	vninput[si], al		; input deposit amount
 	inc	si
 	loop	input_deposit
 
@@ -1892,7 +1892,7 @@ input_deposit:
 	mov	si, 0
 
 check_deposit:
-	cmp	vinput[si], "0"
+	cmp	vninput[si], "0"
 	jae	deposit_digit_ok1
 	jmp	near ptr error
 
@@ -1910,7 +1910,7 @@ deposit_digit_ok2:
 	mov	cx, 4
 
 convert_deposit:
-	mov	bl, vinput[si]
+	mov	bl, vninput[si]
 	sub	bl, "0"
 
 	mov	bh, 0
@@ -1928,25 +1928,25 @@ convert_deposit:
 	mov	newbalance, ax
 
 	mov	ah, 09h			; display deposit successful
-	lea	dx, msg8
+	lea	dx, dep8
 	int	21h
 
 	mov	ah, 09h			; current balance
-	lea	dx, msg9
+	lea	dx, dep9
 	int	21h
 
 	mov	ax, balance
 	call	display_num
 
 	mov	ah, 09h			; deposit amount
-	lea	dx, msg10
+	lea	dx, dep10
 	int	21h
 	
 	mov	ax, deposit
 	call	display_num
 
 	mov	ah, 09h			; display new balance
-	lea	dx, msg11
+	lea	dx, dep11
 	int	21h
 
 	mov	ax, newbalance		; update balance in record
@@ -1957,7 +1957,7 @@ convert_deposit:
 	mov	cx, 4
 
 copy_acc_num:
-	mov	al, vinput[si]
+	mov	al, vninput[si]
 	mov	[di], al
 
 	inc	si
@@ -2143,7 +2143,7 @@ print_newbalance_record:
 	lea	dx, msg12
 	int	21h
 
-	jmp	exit
+	jmp	transaction
 
 error:	
 	mov	ah, 09h			; invalid input after file open
@@ -2164,7 +2164,7 @@ acc_file_error:
 	mov	bx, filehandle
 
 	int	21h
-	jmp	exit
+	jmp	transaction ; cannot find file exit
 
 trans_file_error:
 	mov	ah, 09h
@@ -2175,10 +2175,10 @@ trans_file_error:
 	mov	bx, filehandle2
 	int	21h
 
-	jmp	exit
+	jmp	transaction ; cannot find file exit
 
 file_error:
-	jmp	exit
+	jmp	transaction ; cannot find file exit 
 
 display_num proc			; display number
 	mov	bx, 10
@@ -2209,7 +2209,7 @@ display_success:
         lea     dx, msg12
         int     21H
 
-        jmp     transaction_menu
+        jmp     transaction
 
 ; --------------------------------------------- withraw money --------------------------------------------------------
 withdraw:
@@ -2241,12 +2241,12 @@ input_check_acc:
 	int		21h
 
 	cmp		al, '0'
-	jb		check_invalid
+	call		check_invalid
 
 	cmp		al, '9'
-	ja		check_invalid
+	call		check_invalid
 
-	mov		vinput[si], al
+	mov		vninput[si], al
 	inc		si
 	loop	        input_check_acc
 
@@ -2256,8 +2256,9 @@ input_check_acc:
 	lea		dx, filename2
 	int		21h
 	
-	jc		check_file_error
+	jc		error_check_balance ; out of range jmp
 	mov		filehandle2,ax
+
 
 	mov		ah, 3Fh
 	mov		bx, filehandle2			; read transaction.txt
@@ -2266,7 +2267,7 @@ input_check_acc:
 	lea		dx, trans_buffer
 	int		21h
 	
-	jc		check_file_error
+	jc		error_check_balance ; out of range jmp
 	mov		trans_size, ax
 
 	mov		ah, 3Eh				; close transaction.txt
@@ -2276,20 +2277,24 @@ input_check_acc:
 	mov		si, 0					; search transaction record
 	mov		balance, 0
 
-search_trans:
+error_check_balance:
+
+        call check_file_error
+
+search_trans_balance: ; exit naming
 	cmp		si, trans_size
-	jae		trans_not_found
+	;jae		trans_not_found ; unknow name
 
 	cmp		si, 0							; check wheter is begining of new record
-	je		check_acc
+	je		check_acc_balance ; out of range jmp
 
 	cmp		trans_buffer[si-1], 0Ah
-	je		check_acc
+	je		check_acc_balance ; out of range jmp 
 
 	inc		si
-	jmp		search_trans
+	jmp		search_trans_balance
 
-check_acc:
+check_acc_balance: ; exit naming
 	mov		di, 0
 	mov		bx, si
 
@@ -2316,34 +2321,34 @@ compare_check_acc:
 	mov		si, bx
 	inc		si
 
-find_type_end:
+find_type_end_bln: ; exits naming 
         cmp     si, trans_size					; skip transaction type
-        jae     trans_not_found
+       ; jae     trans_not_found ; unknow name 
 
         cmp     trans_buffer[si], ","
         je      find_amt_start
 
         inc     si
-        jmp     find_type_end
+        jmp     find_type_end_bln
 
 find_amt_start:
         inc     si							; skip amount field
 
-find_amt_end:
+find_amt_end_bln: ; exit naming 
         cmp     si, trans_size
-        jae     trans_not_found
+       ; jae     trans_not_found
 
         cmp     trans_buffer[si], ","
         je      read_check_bal
 
         inc     si
-        jmp     find_amt_end
+        jmp     find_amt_end_bln
 
 read_check_bal:
 	inc		si									; read new balance
 	mov		balance, 0
 
-read_balance_digit:
+read_balance_digit_c: ; exit naming
         cmp     si, trans_size
         jae     save_check_balance
 
@@ -2366,11 +2371,11 @@ read_balance_digit:
         add     ax, bx
 
         inc     si
-        jmp     read_balance_digit
+        jmp     read_balance_digit_c
 
 save_check_balance:
 	mov		balance, ax
-        jmp     search_trans
+        jmp     search_trans_balance
 
 check_not_match:
 	inc		si
@@ -2409,65 +2414,6 @@ check_file_error:
 	int		21h
 
 	jmp		transaction
-
-
-;------------Transaction page ------------------------------
-transaction:
-	mov	ah, 09h
-	lea	dx, trans1
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans2
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans3
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans4
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans5
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans6
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans7
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans8
-	int	21h
-
-	mov	ah, 01h
-	int	21h
-
-	cmp	al, '1'
-	;je	deposit_money
-
-	cmp	al, '2'
-	;je	withdrawal_money Didn't put the code for this function yetfor this three
-
-	cmp	al, '3'
-	;je	check_bal
-
-	cmp	al, '4'
-	call	Mainmenu
-
-	jmp	invalid_trans
-
-invalid_trans:
-	mov	ah, 09h
-	lea	dx, invalidStr
-	int	21h
-
-	jmp	transaction
 
 ;------------Loan and interest page  ------------------------------
 interest_loan:
@@ -2540,35 +2486,35 @@ generate_statement:
 	mov	cx, 6
 	mov	si, 0
 
-input_acc:
+input_acc_statement:
 	mov	ah, 01h
 	int	21h
 
 	mov	accNum[si], al
 	inc	si
-	loop	input_acc
+	loop	input_acc_statement
 
 	mov	cx, 6
 	mov	si, 0
 
-check_acc:
+check_acc_statement:
 	cmp	accNum[si], '0'
-	jb	error
+	jb	error_deposit
 
 	cmp	accNum[si], '9'
-	ja	error
+	ja	error_deposit
 
 	inc	si
-	loop	check_acc
+	loop	check_acc_statement
 
-error:
+error_deposit:
 	mov	ah, 09h
 	lea	dx, invalidStr
 	int	21h
 
 	jmp	generate_statement
 
-acc_found:
+acc_found_Deposit:
 	mov	ah, 09h
 	lea	dx, accFoundStr
 	int	21h
@@ -2581,7 +2527,7 @@ acc_found:
 	int	21h
 	jmp 	Mainmenu			; generate statement here
 
-acc_not_found:
+acc_not_found_Deposit:
 	mov	ah, 09h
 	lea	dx, accNotFound
 	int	21h
@@ -2809,10 +2755,9 @@ ERROR2:MOV AH, 09H
 logout:
 	mov	ah, 09h
 	lea	dx, logoutStr
-	int	21h
+	int	21h     
 
 	mov	ax, 4C00h
 	int	21h
-	main endp 
-
-end main
+        MAIN ENDP
+END MAIN

@@ -1385,7 +1385,7 @@ Mainmenu:
 	cmp	al, '4'
 	;je	generate_statement
 
-	cmp	al, '5'
+	cmp	al, '5' ; HAVE ISSUES IN THIS PART NEED TO CHECK 
 	call	logout
 
 	jmp	invalid_main
@@ -1435,17 +1435,17 @@ acc_management:
 	mov	ah, 01h
 	int	21h
 
-	cmp	al, '1'
-	je	create_acc
+	;cmp	al, '1'
+	;je	create_acc
 
-	cmp	al, '2'
-	je	update_acc
+	;cmp	al, '2'
+	;je	update_acc
 
-	cmp	al, '3'
-	je	view_acc
+	;cmp	al, '3'
+	;je	view_acc
 
 	cmp	al, '4'
-	call	main_menu
+	call	Mainmenu        
 
 	jmp	invalid_acc
 

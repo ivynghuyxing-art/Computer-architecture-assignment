@@ -53,7 +53,7 @@ Title BankInterestAssignment
 	invalidStr	db	10,13,"Invalid input! Please enter numeric number. $"
 	accNotFound	db	10,13,"Account not found! $"
 	logoutStr	db	10,13,"Logging out... $"
-	accNum		db	6 dup(?)
+	accNum		db	4 dup(?)
 
 
 ;---------------------------------Login-------------------------------------------------------	
@@ -159,12 +159,10 @@ file_password       db 21 dup(0)	;store password read from user.txt
 file_phone          db 16 dup(0)	;store phone read from user.txt
 file_email          db 31 dup(0)	;store email from user.txt
 
-;----------------------------------------------------------------------------------------
-
 ;--------------------------------Joey Data-----------------------------------------------
 ;----------------------------------------------------------------------------------------
 
-;--------------------------------Lim xin jie Data----------------------------------------
+;-------------------------------- Xin Jie Data----------------------------------------
 	msg1	db	10,13,"------------------------- $"
 	msg2	db	10,13,"         DEPOSIT          $"
 	msg3	db	10,13,"------------------------- $"
@@ -283,7 +281,7 @@ MAIN PROC FAR
     MOV AX, @DATA
     MOV DS, AX
 
-;--------------------------------Login Page------------------------------------------
+;--------------------------------------------------Login Page------------------------------------------
 	mov     ah,09h				;display logo
     lea     dx,logo1
     int     21h
@@ -1453,7 +1451,7 @@ invalid_main:
 	jmp	Mainmenu
 
 
-;-------account_management page -------------------
+;------------------------------------------------ -account_management page ----------------------------------------------------
 acc_management:
 	mov	ah, 09h
 	lea	dx, acc1
@@ -1513,57 +1511,64 @@ invalid_acc:
 
 ; --------------------------------------- Transaction page --------------------------------------------------
 transaction:
-        mov     ah, 09H 
-        lea     dx, trans1
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans1
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans2
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans2
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans3
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans3
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans4
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans4
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans5
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans5
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans6
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans6
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans7
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans7
+	int	21h
 
-        mov     ah, 09H 
-        lea     dx, trans8
-        int     21H
+	mov	ah, 09h
+	lea	dx, trans8
+	int	21h
 
-        mov     ah, 09H
-        int     21H
+	mov	ah, 01h
+	int	21h
 
-        cmp     al, '1'
-        je      deposit_start
+	cmp	al, '1'
+	;je	deposit_money
 
-        cmp     al, '2'
-        je      deposit_start
+	cmp	al, '2'
+	;je	withdrawal_money Didn't put the code for this function yetfor this three
 
-        cmp     al, '3'
-        je      deposit_start
+	cmp	al, '3'
+	;je	check_bal
 
-        cmp     al, '4'
-        je      deposit_start
+	cmp	al, '4'
+	call	Mainmenu
 
-        jmp     transaction_menu                ; invalid choice
+	jmp	invalid_trans
+
+invalid_trans:
+	mov	ah, 09h
+	lea	dx, invalidStr
+	int	21h
+
+	jmp	transaction                ; invalid choice
 
 deposit_start:
-        mov	ah, 09h
+     mov	ah, 09h
 	lea	dx, msg1
 	int	21h
 
@@ -2217,7 +2222,7 @@ withdraw:
 
 ; ----------------------------------------------- check balance ---------------------------------
 check_bal:
-        mov		ah, 09h				; display check balance title
+    mov		ah, 09h				; display check balance title
 	lea		dx, chk1
 	int		21h
 
@@ -2410,66 +2415,7 @@ check_file_error:
 
 	jmp		transaction
 
-
-;------------Transaction page ------------------------------
-transaction:
-	mov	ah, 09h
-	lea	dx, trans1
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans2
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans3
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans4
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans5
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans6
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans7
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans8
-	int	21h
-
-	mov	ah, 01h
-	int	21h
-
-	cmp	al, '1'
-	;je	deposit_money
-
-	cmp	al, '2'
-	;je	withdrawal_money Didn't put the code for this function yetfor this three
-
-	cmp	al, '3'
-	;je	check_bal
-
-	cmp	al, '4'
-	call	Mainmenu
-
-	jmp	invalid_trans
-
-invalid_trans:
-	mov	ah, 09h
-	lea	dx, invalidStr
-	int	21h
-
-	jmp	transaction
-
-;------------Loan and interest page  ------------------------------
+;------------------------------------------ Loan and interest page  ---------------------------------------
 interest_loan:
     MOV AH, 09H
    	LEA DX, int1
@@ -2531,13 +2477,13 @@ invalid_loan:
 
 	jmp	interest_loan
 
-
+; ------------------------------------------- generate statement --------------------------------------------------------------
 generate_statement:
 	mov	ah, 09h
 	;lea	dx, statementMenuStr this one didn't have this varible
 	int	21h
 
-	mov	cx, 6
+	mov	cx, 4
 	mov	si, 0
 
 input_acc:

@@ -3171,11 +3171,20 @@ invalid_loan:
 ; ------------------------------------------- generate statement --------------------------------------------------------------
 generate_statement:
 	mov	ah, 09h
-	;lea	dx, statementMenuStr this one didn't have this varible
+	lea	dx, gnt1
 	int	21h
 
-	mov	cx, 4
-	mov	si, 0
+	mov	ah, 09h
+	lea	dx, gnt2
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, gnt3
+	int	21h
+
+	mov	ah, 09h
+	lea	dx, gnt4
+	int	21h
 
 input_acc:
 	mov	ah, 01h

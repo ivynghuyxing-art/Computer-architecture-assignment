@@ -519,9 +519,35 @@ INTEREST DW 0 	;Interest result
 	date_year   dw ?
 
 ;=======================WITHDRAWAL=======================
-    balance_wid					dw	1000
-    withdraw_amount     	dw	0
-    input               	db	6, ?, 6 dup('$')
+    balance_wid             dw 0
+    withdraw_amount         dw 0
+    input                   db 6, ?, 6 dup('$')
+    vinput_wid              db 4 dup(?)
+    msg_withdraw_account    db 10,13,"Enter account number: $"
+
+;=======================COMMON BANK HELPERS=======================
+    lookup_account_ptr      dw ?
+    lookup_balance          dw 0
+    lookup_found            db 0
+    lookup_trans_found      db 0
+    lookup_comma_count      db 0
+
+    generic_account_ptr     dw ?
+    generic_type_ptr        dw ?
+    generic_type_len        dw ?
+    generic_amount          dw ?
+    generic_new_balance     dw ?
+    withdraw_text           db "Withdraw"
+    interest_text           db "Interest"
+
+    stmt_header1            db 10,13,10,13,"=========================================$"
+    stmt_header2            db 10,13,"             BANK STATEMENT              $"
+    stmt_header3            db 10,13,"=========================================$"
+    stmt_acc_msg            db 10,13,"Account Number : $"
+    stmt_bal_msg            db 10,13,"Current Balance: RM$"
+    stmt_trans_msg          db 10,13,10,13,"Transactions:$"
+    stmt_none_msg           db 10,13,"No transaction records found.$"
+    stmt_press_msg          db 10,13,10,13,"Press any key to return to Main Menu...$"
 
 ;==================================================================
 .code
@@ -711,7 +737,9 @@ read_existing_username:
         int     21h
 
         cmp     ax,0
-        je      duplicate_username_not_found_close
+        jne __longj_0
+        jmp duplicate_username_not_found_close
+__longj_0:
 
         mov     al,file_char
 
@@ -725,7 +753,9 @@ read_existing_username:
         je      existing_username_done
 
         cmp     si,20
-        jae     read_existing_username
+        jb __longj_1
+        jmp read_existing_username
+__longj_1:
 
         mov     file_username[si],al
         inc     si
@@ -742,7 +772,9 @@ compare_existing_username:
         jne     duplicate_username_skip_record
 
         cmp     al,0
-        je      duplicate_username_found
+        jne __longj_2
+        jmp duplicate_username_found
+__longj_2:
 
         inc     si
         jmp     compare_existing_username
@@ -755,13 +787,19 @@ duplicate_username_skip_record:
         int     21h
 
         cmp     ax,0
-        je      duplicate_username_not_found_close
+        jne __longj_3
+        jmp duplicate_username_not_found_close
+__longj_3:
 
         mov     al,file_char
         cmp     al,13
-        je      duplicate_username_next_record
+        jne __longj_4
+        jmp duplicate_username_next_record
+__longj_4:
         cmp     al,10
-        je      duplicate_username_next_record
+        jne __longj_5
+        jmp duplicate_username_next_record
+__longj_5:
 
         jmp     duplicate_username_skip_record
 
@@ -796,7 +834,9 @@ register_password:
         int     21h
 
         cmp     al,0Dh
-        je      password_done
+        jne __longj_6
+        jmp password_done
+__longj_6:
 
         cmp     al,08h
         je      register_password_backspace
@@ -816,7 +856,9 @@ register_password:
 
 register_password_backspace:
         cmp     si,0
-        je      register_password
+        jne __longj_7
+        jmp register_password
+__longj_7:
 
         dec     si
 
@@ -853,7 +895,9 @@ validate_loop:
         mov     al,reg_password[si]
 
         cmp     al,0
-        je      check_password_requirement
+        jne __longj_8
+        jmp check_password_requirement
+__longj_8:
 
         cmp     al,41h					;check uppercase
         jb      validate_lowercase
@@ -870,7 +914,9 @@ validate_lowercase:
 
 validate_number:
         cmp     al,30h					;check number
-        jb      validate_special_found
+        jae __longj_9
+        jmp validate_special_found
+__longj_9:
 
         cmp     al,39h
         jbe     validate_number_found
@@ -969,10 +1015,14 @@ input_email:
         int     21h
 
         cmp     al,0Dh                 ;ENTER
-        je      email_done
+        jne __longj_10
+        jmp email_done
+__longj_10:
 
         cmp     al,08h                 ;BACKSPACE
-        je      email_backspace
+        jne __longj_11
+        jmp email_backspace
+__longj_11:
 
         cmp     al,00h                 ;extended key prefix
         je      email_extended_key
@@ -1003,7 +1053,9 @@ email_extended_key:
 
 email_backspace:
         cmp     si,0
-        je      input_email
+        jne __longj_12
+        jmp input_email
+__longj_12:
 
         dec     si
         mov     byte ptr reg_email[si],0
@@ -1034,22 +1086,32 @@ validate_email:
         mov     si,0
 
         cmp     byte ptr reg_email[0],0
-        je      email_invalid
+        jne __longj_13
+        jmp email_invalid
+__longj_13:
 
         cmp     byte ptr reg_email[0],'@'
-        je      email_invalid
+        jne __longj_14
+        jmp email_invalid
+__longj_14:
 
         cmp     byte ptr reg_email[0],'.'
-        je      email_invalid
+        jne __longj_15
+        jmp email_invalid
+__longj_15:
 
 validate_email_loop:
         mov     al,reg_email[si]
 
         cmp     al,0
-        je      email_validate_end
+        jne __longj_16
+        jmp email_validate_end
+__longj_16:
 
         cmp     al,' '
-        je      email_invalid
+        jne __longj_17
+        jmp email_invalid
+__longj_17:
 
         cmp     al,'@'
         je      email_at_found
@@ -1063,7 +1125,9 @@ validate_email_loop:
 
 email_at_found:
         cmp     has_at,1
-        je      email_invalid
+        jne __longj_18
+        jmp email_invalid
+__longj_18:
 
         mov     has_at,1
 
@@ -1162,12 +1226,16 @@ find_email_char_ok:
         je      find_email_field
 
         cmp     al,','
-        jne     find_email_field
+        je __longj_19
+        jmp find_email_field
+__longj_19:
 
         inc     dup_comma_count
 
         cmp     dup_comma_count,3      ;email is the 4th field
-        jne     find_email_field
+        je __longj_20
+        jmp find_email_field
+__longj_20:
 
         mov     si,0
 
@@ -1572,7 +1640,9 @@ input_login_password:
         int     21h
 
         cmp     al,0Dh
-        je      login_password_done
+        jne __longj_21
+        jmp login_password_done
+__longj_21:
 
         cmp     al,08h
         je      login_password_backspace
@@ -1595,7 +1665,9 @@ input_login_password:
 
 login_password_backspace:
         cmp     si,0
-        je      input_login_password
+        jne __longj_22
+        jmp input_login_password
+__longj_22:
 
         dec     si
 
@@ -1664,7 +1736,9 @@ username_read_ok:
         je      read_file_username
 
         cmp     al,10
-        je      read_file_username
+        jne __longj_23
+        jmp read_file_username
+__longj_23:
 
         cmp     al,','
         je      file_username_done
@@ -1779,12 +1853,16 @@ read_file_email:
         int     21h
 
         cmp     ax,0
-        je      file_email_eof
+        jne __longj_24
+        jmp file_email_eof
+__longj_24:
 
         mov     al,file_char
 
         cmp     al,13
-        je      file_email_done
+        jne __longj_25
+        jmp file_email_done
+__longj_25:
 
         cmp     al,10
         je      file_email_done
@@ -1953,7 +2031,9 @@ skip_char_ok:
 
 skip_check_lf:
         cmp     al,10
-        jne     skip_user_record
+        je __longj_26
+        jmp skip_user_record
+__longj_26:
 
         jmp     read_user_record
 
@@ -2038,20 +2118,25 @@ mov	ah, 09h
 	int	21h
 
 	cmp	al, '1'
-	je	acc_menu	
-
+	jne	main_check_2
+	jmp	acc_menu
+main_check_2:
 	cmp	al, '2'
-	je	submenu_trans
-
+	jne	main_check_3
+	jmp	submenu_trans
+main_check_3:
 	cmp	al, '3'
-	je	submenu_loan
-
+	jne	main_check_4
+	jmp	submenu_loan
+main_check_4:
 	cmp	al, '4'
-	;je	generate_statement
-
+	jne	main_check_5
+	jmp	generate_statement
+main_check_5:
 	cmp	al, '5'
-	je	logout
-
+	jne	main_invalid_jump
+	jmp	logout
+main_invalid_jump:
 	jmp	invalid_main
 
 logout:
@@ -2062,10 +2147,10 @@ logout:
     call exit_program
 
 submenu_trans:
-    call transaction
+    jmp transaction
 
 submenu_loan:
-    call interest_loan
+    jmp interest_loan
 
 invalid_main:
 	mov	ah, 09h
@@ -2368,7 +2453,9 @@ acc_input_username:
         int     21h
 
         cmp     al,0Dh
-        je      acc_username_done
+        jne __longj_27
+        jmp acc_username_done
+__longj_27:
 
         cmp     al,08h
         je      acc_username_backspace
@@ -2388,7 +2475,9 @@ acc_input_username:
 
 acc_username_backspace:
         cmp     si,0				;username backspace
-        je      acc_input_username
+        jne __longj_28
+        jmp acc_input_username
+__longj_28:
 
         dec     si
 
@@ -2499,7 +2588,9 @@ acc_input_phone:
         int     21h
 
         cmp     al,0Dh
-        je      acc_phone_done
+        jne __longj_29
+        jmp acc_phone_done
+__longj_29:
 
         cmp     al,08h
         je      acc_phone_backspace
@@ -2519,7 +2610,9 @@ acc_input_phone:
 
 acc_phone_backspace:
         cmp     si,0				;phone backspace
-        je      acc_input_phone
+        jne __longj_30
+        jmp acc_input_phone
+__longj_30:
 
         dec     si
 
@@ -2628,7 +2721,9 @@ acc_input_email:
         int     21h
 
         cmp     al,0Dh
-        je      acc_email_done
+        jne __longj_31
+        jmp acc_email_done
+__longj_31:
 
         cmp     al,08h
         je      acc_email_backspace
@@ -2648,7 +2743,9 @@ acc_input_email:
 
 acc_email_backspace:
         cmp     si,0					;email backspace
-        je      acc_input_email
+        jne __longj_32
+        jmp acc_input_email
+__longj_32:
 
         dec     si
 
@@ -2837,7 +2934,9 @@ acc_input_currentpass:
         int     21h
 
         cmp     al,0Dh
-        je      acc_currentpass_done
+        jne __longj_33
+        jmp acc_currentpass_done
+__longj_33:
 
         cmp     al,08h
         je      acc_currentpass_backspace
@@ -2857,7 +2956,9 @@ acc_input_currentpass:
 
 acc_currentpass_backspace:
         cmp     si,0
-        je      acc_input_currentpass
+        jne __longj_34
+        jmp acc_input_currentpass
+__longj_34:
 
         dec     si
 
@@ -2914,7 +3015,9 @@ acc_input_newpass:
         int     21h
 
         cmp     al,0Dh
-        je      acc_newpass_done
+        jne __longj_35
+        jmp acc_newpass_done
+__longj_35:
 
         cmp     al,08h
         je      acc_newpass_backspace
@@ -2934,7 +3037,9 @@ acc_input_newpass:
 
 acc_newpass_backspace:
         cmp     si,0
-        je      acc_input_newpass
+        jne __longj_36
+        jmp acc_input_newpass
+__longj_36:
 
         dec     si
 
@@ -2994,7 +3099,9 @@ acc_validate_password:
         mov     al,acc_newpass[si]
 
         cmp     al,0
-        je      acc_check_password_requirement
+        jne __longj_37
+        jmp acc_check_password_requirement
+__longj_37:
 
         cmp     al,'A'
         jb      acc_validate_lowercase
@@ -3011,7 +3118,9 @@ acc_validate_lowercase:
 
 acc_validate_number:
         cmp     al,'0'
-        jb      acc_special_found
+        jae __longj_38
+        jmp acc_special_found
+__longj_38:
 
         cmp     al,'9'
         jbe     acc_number_found
@@ -3089,7 +3198,9 @@ acc_input_confirmpass:
         int     21h
 
         cmp     al,0Dh
-        je      acc_confirmpass_done
+        jne __longj_39
+        jmp acc_confirmpass_done
+__longj_39:
 
         cmp     al,08h
         je      acc_confirmpass_backspace
@@ -3109,7 +3220,9 @@ acc_input_confirmpass:
 
 acc_confirmpass_backspace:
         cmp     si,0
-        je      acc_input_confirmpass
+        jne __longj_40
+        jmp acc_input_confirmpass
+__longj_40:
 
         dec     si
 
@@ -3216,17 +3329,21 @@ transaction:
 	int	21h
 
 	cmp	al, '1'
-	je	deposit_start
-
+	jne	trans_check_2
+	jmp	deposit_start
+trans_check_2:
 	cmp	al, '2'
-	je	withdrawmenu
-
+	jne	trans_check_3
+	jmp	withdrawmenu
+trans_check_3:
 	cmp	al, '3'
-	je	check_bal_menu
-
+	jne	trans_check_4
+	jmp	check_bal_menu
+trans_check_4:
 	cmp	al, '4'
+	jne	trans_invalid_jump
 	jmp	back_to_main
-
+trans_invalid_jump:
 	jmp	invalid_trans
 check_bal_menu:
     jmp check_bal
@@ -3312,331 +3429,18 @@ save_acc_input:
 	inc	si
 	loop	save_acc_input
 
-	mov	ah, 3Dh			; open account.txt
-	mov	al, 2
-
-	lea	dx, filename
-	int	21h
-
-	jnc	file_open_ok
-	jmp	file_error
-
-file_open_ok:
-	mov	filehandle, ax
-
-	mov	ah, 3Fh			; search account number from account.txt
-	mov	bx, filehandle
-	mov	cx, 512
-
-	lea	dx, acc_buffer
-	int	21h
-
-	jnc	acc_read_ok
-	jmp	acc_file_error
-
-acc_read_ok:
-	mov	acc_size, ax
-
-	mov	ah, 3Eh
-	mov	bx, filehandle
-	int	21h
-
-	mov	si, 0
-	mov	cx, acc_size
-
-search_acc:
-	cmp	cx, 0
-	jne	search_second_comma_ok1
-	jmp	near ptr acc_not_found_dep
-
-search_second_comma_ok1:
-	cmp	acc_buffer[si], ","	; look for 1st comma
-	jne	next_acc_char
-	
-	inc	si
-	dec	cx
-
-search_second_comma:
-	cmp	cx, 0			; look for 2nd comma
-	jne	search_second_comma_ok2
-	jmp	near ptr acc_not_found_dep
-
-search_second_comma_ok2:
-	cmp	acc_buffer[si], ","
-	je	check_acc_num
-
-	inc	si
-	dec	cx
-
-	jmp	search_second_comma
-
-check_acc_num:
-	inc	si
-	dec	cx
-
-	cmp	cx, 4
-	jae	acc_size_ok
+	; Get latest balance for this account.
+	; account.txt confirms the account exists; transaction.txt supplies
+	; the most recent New Balance when transaction records exist.
+	lea	dx, vinput_dep
+	call	bank_get_balance
+	jnc	deposit_balance_ok
 	jmp	acc_not_found_dep
-	
-acc_size_ok:
-	mov	di, 0
-	mov	bx, si
 
-compare_acc:
-	mov	al, acc_buffer[bx]
-	cmp	al, vinput_dep[di]
-	jne	acc_num_not_match
+deposit_balance_ok:
+	mov	balance_dep, ax
 
-	inc	bx
-	inc	di
 
-	cmp	di, 4
-	jne	compare_acc
-
-	jmp	acc_found		; Account found
-
-acc_num_not_match:
-	mov	si, bx			; Continue searching
-
-next_acc_char:
-	inc	si
-	dec	cx
-
-	jmp	near ptr search_acc
-
-acc_found:
-	mov	ah, 09h			; account found
-	lea	dx, dep5
-	int	21h
-
-	mov	ah, 3Dh			; open transaction.txt
-	mov	al, 0
-	
-	lea	dx, filename2
-	int	21h
-
-	jnc	trans_open_ok
-	jmp	near ptr trans_file_error
-
-trans_open_ok:
-	mov	filehandle2, ax
-	mov	ah, 3Fh			; read transaction.txt
-	mov	bx, filehandle2
-
-	mov	cx, 1024
-	lea	dx, trans_buffer_dep
-	int	21h
-
-	jnc	trans_read_ok
-	jmp	near ptr trans_file_error
-
-trans_read_ok:
-	mov	trans_size_dep, ax
-
-	mov	ah, 3Eh			; close transaction.txt
-	mov	bx, filehandle2
-	int	21h
-
-	mov	si, 0
-	mov	balance_dep, 0
-
-search_trans:
-
-    ; Check if reached end of file
-    cmp si, trans_size
-    jb si_in_range1
-    jmp near ptr trans_search_done
-si_in_range1:
-
-    ; ==============================
-    ; Make sure SI is at beginning
-    ; of a transaction record
-    ; ==============================
-
-    cmp si, 0
-    je check_trans_acc
-
-    cmp trans_buffer_dep[si-1], 0Ah
-    je check_trans_acc
-
-    inc si
-    jmp search_trans
-
-
-check_trans_acc:
-
-    ; Make sure at least 4 account digits exist
-    mov ax, trans_size
-    sub ax, si
-    cmp ax, 4
-    jae enough_digits
-    jmp near ptr trans_search_done
-enough_digits:
-
-    ; ==============================
-    ; Compare account number
-    ; ==============================
-
-    mov di, 0
-    mov bx, si
-
-compare_trans_acc:
-
-    mov al, trans_buffer_dep[bx]
-    cmp al, acc_input[di]
-    jne near ptr trans_skip_record
-
-trans_acc_match:
-    inc bx
-    inc di
-
-    cmp di, 4
-    jne compare_trans_acc
-
-    ; Must have comma after account number
-    cmp trans_buffer_dep[bx], ","
-    jne trans_skip_record
-
-    ; ==============================
-    ; Account number matched
-    ; ==============================
-
-    mov si, bx
-    inc si
-
-
-    ; ==============================
-    ; Skip Transaction Type
-    ; Example:
-    ; Deposit,
-    ; ==============================
-
-skip_transaction_type:
-
-    cmp si, trans_size
-    jae trans_search_done
-
-    cmp trans_buffer_dep[si], ","
-    je transaction_type_done
-
-    inc si
-    jmp skip_transaction_type
-
-
-transaction_type_done:
-
-    inc si
-
-
-    ; ==============================
-    ; Skip Amount
-    ; Example:
-    ; 500,
-    ; ==============================
-
-skip_amount:
-
-    cmp si, trans_size
-    jae trans_search_done
-
-    cmp trans_buffer_dep[si], ","
-    je amount_done
-
-    inc si
-    jmp skip_amount
-
-
-amount_done:
-
-    inc si
-
-
-    ; ==============================
-    ; Read New Balance
-    ; ==============================
-
-    mov ax, 0
-
-
-read_trans_balance:
-
-    cmp si, trans_size
-    jae save_trans_balance
-
-    mov bl, trans_buffer_dep[si]
-
-    cmp bl, ","
-    je save_trans_balance
-
-    cmp bl, 0Dh
-    je save_trans_balance
-
-    cmp bl, 0Ah
-    je save_trans_balance
-
-    ; Convert ASCII digit to number
-    sub bl, "0"
-    mov bh, 0
-
-    mov dx, 10
-    mul dx
-
-    add ax, bx
-
-    inc si
-    jmp read_trans_balance
-
-save_trans_balance:
-
-    ; Save latest balance
-    mov balance_dep, ax
-
-    ; ==============================
-    ; Move to next transaction line
-    ; ==============================
-
-skip_to_next_line:
-
-    cmp si, trans_size
-    jae trans_search_done
-
-    cmp trans_buffer_dep[si], 0Ah
-    je next_transaction
-
-    inc si
-    jmp skip_to_next_line
-
-
-next_transaction:
-
-    inc si
-    jmp search_trans
-
-
-; ==================================
-; Account number does not match
-; ==================================
-
-trans_skip_record:
-
-skip_current_record:
-
-    cmp si, trans_size
-    jae trans_search_done
-
-    cmp trans_buffer_dep[si], 0Ah
-    je skip_line_done
-
-    inc si
-    jmp skip_current_record
-
-
-skip_line_done:
-
-    inc si
-    jmp search_trans
-
-trans_search_done:
 	mov	ah, 09h			; diaplsy current balance
 	lea	dx, dep6
 	int	21h
@@ -3884,8 +3688,21 @@ inc di
 
 	lea	dx, filename2
 	int	21h
+	jnc	deposit_trans_opened
 
-	jc	trans_file_error
+	cmp	ax, 2
+	je __longj_41
+	jmp trans_file_error
+__longj_41:
+	mov	ah, 3Ch
+	mov	cx, 0
+	lea	dx, filename2
+	int	21h
+	jnc __longj_42
+	jmp trans_file_error
+__longj_42:
+
+deposit_trans_opened:
 	mov	filehandle2, ax
 
 	mov	ah, 42h
@@ -3897,7 +3714,9 @@ inc di
 	mov	dx, 0
 
 	int	21h
-	jc	trans_file_error
+	jnc __longj_43
+	jmp trans_file_error
+__longj_43:
 
 	mov	ah, 40h
 	mov	bx, filehandle2
@@ -3905,7 +3724,9 @@ inc di
 
 	lea	dx, trans_record
 	int	21h
-	jc	trans_file_error
+	jnc __longj_44
+	jmp trans_file_error
+__longj_44:
 
 	mov	ah, 3Eh
 	mov	bx, filehandle2
@@ -3977,7 +3798,7 @@ file_error:
 
 
 back_to_submenu_trans:
-    call	transaction
+    jmp	transaction
 
 write_2_digit proc			; AL = value (0-99), writes 2 ASCII chars to [di]
 	mov	ah, 0
@@ -4048,419 +3869,253 @@ print_num:
 display_num_dep endp
 ;============================== Withdrawal Money ================================
 withdrawal_money:
-    mov		ah , 09h						; Display withdraw title
-    lea		dx , msg_withdraw_title1
-    int		21h
-    	
-    mov		ah , 09h
-    lea		dx , msg_withdraw_title2
-    int		21h
-    	
-    mov		ah , 09h
-    lea		dx , msg_withdraw_title3
+    mov     ah,09h
+    lea     dx,msg_withdraw_title1
+    int     21h
+    mov     ah,09h
+    lea     dx,msg_withdraw_title2
+    int     21h
+    mov     ah,09h
+    lea     dx,msg_withdraw_title3
     int     21h
 
-START_withdraw:
-	mov    	ah , 09h
-	lea    	dx , msg_balance			; Display current balance
-	int    	21h
-
-	mov    	ax , balance_wid				; Display balance in 4 digits
-	call	DISPLAY_NUM
-
-	mov    	bx , 1000					; Thousands
-    mov    	dx , 0
-    div    	bx
-    add    	al , '0'
-    mov    	dl , al
-    mov    	ah , 02h
-    int    	21h
-
-    mov    	ax , dx						; Hundreds
-    mov    	bx , 100
-    mov    	dx , 0
-    div    	bx
-    add    	al , '0'
-    mov    	dl , al
-    mov    	ah , 02h
-    int    	21h
-
-    mov    	ax , dx						; Tens
-    mov    	bx , 10
-    mov    	dx , 0
-    div    	bx
-    add    	al , '0'
-    mov    	dl , al
-    mov    	ah , 02h
-    int    	21h
-
-    add    	dl , '0'					; Ones
-    mov    	ah , 02h
-    int    	21h
-
-WITHDRAW:
-    mov    	ah, 09h
-    lea    	dx , msg_withdraw			; Prompt msg to let user enter withdraw amount
-    int    	21h
-
-    mov    	ah , 0Ah
-    lea    	dx , input					; Get user input
-    int    	21h
-
-    mov    	cl , input+1          		; Actual number of characters entered
-	cmp		cl , 0
-	je		INVALID
-
-	mov		ch , 0
-    lea    	si , input+2          		; Pointing to the first character
-
-CHECK_DIGIT_LOOP:
-	mov		bl , [si]
-
-	cmp		bl , '0'
-	jb		INVALID
-	cmp		bl , '9'
-	ja		INVALID
-
-	inc		si
-	loop	CHECK_DIGIT_LOOP
-
-    mov    	ax , 0
-    mov    	bx , 0
-    mov    	cx , 0
-
-    mov    	cl , input+1
-    lea    	si , input+2
-
-CONVERT_LOOP:
-    mov    	bl , [si]
-    sub    	bl , '0'
-
-    mov    	dx , 10
-    mul    	dx
-    add    	ax , bx
-
-    inc    	si
-    loop   	CONVERT_LOOP
-
-    mov    	withdraw_amount , ax
-
-    cmp    	ax , 1						; Check if the amount is valid (1-9999)
-    jb     	INVALID
-    cmp    	ax , 9999
-    ja     	INVALID
-
-    cmp    	ax , balance_wid				; Check if the balance is sufficient
-    ja     	INSUFFICIENT
-
-    sub    	balance_wid , ax				; Execute withdraw
-
-    mov    	ah , 09h
-    lea    	dx , msg_withdraw_success	; Shwo the withdrawal was successful
-    int    	21h
-
-    mov    	ax , balance_wid				; Display new balance
-	call	DISPLAY_NUM
-
-    jmp    	CONTINUE
-
-GO_START:
-	jmp	START_withdraw
-
-CONTINUE:
-    mov    	ah , 09h
-    lea    	dx , msg_withdraw_continue	; Prompt msg to ask user whether want to continue to withdraw
-    int    	21h
-
-    mov    	ah , 01h
-    int    	21h
-
-    and    	al , 0DFh
-
-    cmp    	al , 'Y'
-    je     	GO_START
-
-    jmp    	back_to_submenu_trans
-
-INVALID:
-    mov    	ah , 09h
-    lea    	dx , msg_withdraw_invalid	; Display msg if user input an invalid input
-    int    	21h
-    jmp    	CONTINUE
-
-INSUFFICIENT:
-    mov    	ah , 09h
-    lea    	dx , msg_withdraw_fail		; Display msg if the withdraw amount is more than the balance
-    int    	21h
-    jmp    	CONTINUE
-
-DISPLAY_NUM proc
-    mov     bx, 1000
-    mov     dx, 0
-    div     bx
-    mov     cl, al
-    add     cl, '0'
-    mov     dl, cl
-    mov     ah, 02h
+withdraw_start:
+    mov     ah,09h
+    lea     dx,msg_withdraw_account
     int     21h
 
-    mov     ax, dx
-    mov     bx, 100
-    mov     dx, 0
-    div     bx
-    mov     cl, al
-    add     cl, '0'
-    mov     dl, cl
-    mov     ah, 02h
+    mov     cx,4
+    mov     si,0
+withdraw_read_acc:
+    mov     ah,01h
+    int     21h
+    mov     vinput_wid[si],al
+    inc     si
+    loop    withdraw_read_acc
+
+    mov     cx,4
+    mov     si,0
+withdraw_check_acc:
+    cmp     vinput_wid[si],'0'
+    jae __longj_45
+    jmp withdraw_bad_account
+__longj_45:
+    cmp     vinput_wid[si],'9'
+    jbe __longj_46
+    jmp withdraw_bad_account
+__longj_46:
+    inc     si
+    loop    withdraw_check_acc
+
+    lea     dx,vinput_wid
+    call    bank_get_balance
+    jnc __longj_47
+    jmp withdraw_account_not_found
+__longj_47:
+    mov     balance_wid,ax
+
+    mov     ah,09h
+    lea     dx,msg_balance
+    int     21h
+    mov     ax,balance_wid
+    call    display_num_dep
+
+withdraw_amount_prompt:
+    mov     ah,09h
+    lea     dx,msg_withdraw
     int     21h
 
-    mov     ax, dx
-    mov     bx, 10
-    mov     dx, 0
-    div     bx
-    mov     cl, al
-    add     cl, '0'
-    mov     dl, cl
-    mov     ah, 02h
+    mov     byte ptr input+1,0
+    mov     ah,0Ah
+    lea     dx,input
     int     21h
 
-    mov     dl, dl          ; remainder from last div = ones digit
-    add     dl, '0'
-    mov     ah, 02h
+    xor     cx,cx
+    mov     cl,input+1
+    cmp     cx,0
+    jne __longj_48
+    jmp withdraw_invalid
+__longj_48:
+    cmp     cx,4
+    jbe __longj_49
+    jmp withdraw_invalid
+__longj_49:
+
+    lea     si,input+2
+    mov     bx,cx
+withdraw_digit_loop:
+    mov     al,[si]
+    cmp     al,'0'
+    jae __longj_50
+    jmp withdraw_invalid
+__longj_50:
+    cmp     al,'9'
+    jbe __longj_51
+    jmp withdraw_invalid
+__longj_51:
+    inc     si
+    dec     bx
+    jnz     withdraw_digit_loop
+
+    xor     ax,ax
+    lea     si,input+2
+    xor     cx,cx
+    mov     cl,input+1
+withdraw_convert_loop:
+    mov     bl,[si]
+    sub     bl,'0'
+    xor     bh,bh
+    push    bx
+    mov     bx,10
+    mul     bx
+    pop     bx
+    add     ax,bx
+    inc     si
+    loop    withdraw_convert_loop
+
+    mov     withdraw_amount,ax
+    cmp     ax,1
+    jae __longj_52
+    jmp withdraw_invalid
+__longj_52:
+    cmp     ax,9999
+    jbe __longj_53
+    jmp withdraw_invalid
+__longj_53:
+    cmp     ax,balance_wid
+    jbe __longj_54
+    jmp withdraw_insufficient
+__longj_54:
+
+    mov     bx,balance_wid
+    sub     bx,ax
+    mov     balance_wid,bx
+
+    lea     dx,vinput_wid
+    mov     generic_account_ptr,dx
+    lea     dx,withdraw_text
+    mov     generic_type_ptr,dx
+    mov     generic_type_len,8
+    mov     ax,withdraw_amount
+    mov     generic_amount,ax
+    mov     ax,balance_wid
+    mov     generic_new_balance,ax
+    call    bank_append_transaction
+    jnc __longj_55
+    jmp withdraw_file_error
+__longj_55:
+
+    mov     ah,09h
+    lea     dx,msg_withdraw_success
     int     21h
-    ret
-DISPLAY_NUM endp
+    mov     ax,balance_wid
+    call    display_num_dep
+    jmp     withdraw_continue
+
+withdraw_bad_account:
+    mov     ah,09h
+    lea     dx,dep13
+    int     21h
+    jmp     withdraw_continue
+
+withdraw_account_not_found:
+    mov     ah,09h
+    lea     dx,dep15
+    int     21h
+    jmp     withdraw_continue
+
+withdraw_invalid:
+    mov     ah,09h
+    lea     dx,msg_withdraw_invalid
+    int     21h
+    jmp     withdraw_continue
+
+withdraw_insufficient:
+    mov     ah,09h
+    lea     dx,msg_withdraw_fail
+    int     21h
+    jmp     withdraw_continue
+
+withdraw_file_error:
+    mov     ah,09h
+    lea     dx,dep16
+    int     21h
+
+withdraw_continue:
+    mov     ah,09h
+    lea     dx,msg_withdraw_continue
+    int     21h
+    mov     ah,01h
+    int     21h
+    and     al,0DFh
+    cmp     al,'Y'
+    jne __longj_56
+    jmp withdraw_start
+__longj_56:
+    jmp     transaction
 
 ;==========================CHECK BALANCE=========================================
 check_bal:
-    mov		ah, 09h				; display check balance title
-	lea		dx, chk1
-	int		21h
-
-	mov		ah, 09h
-	lea		dx, chk2
-	int		21h
-
-	mov		ah, 09h
-	lea		dx, chk3
-	int		21h
-
-	mov		ah, 09h
-	lea		dx, chk4			; enter account number
-	int		21h
-
-	mov		cx, 4
-	mov		si, 0
-
-    mov		cx, 4
-	mov		si, 0
-
-input_check_acc:
-	cmp		al, '0'
-	jb		chk_invalid
-
-	cmp		al, '9'
-	ja		chk_invalid
-
-	jmp		chk_valid
-
-chk_invalid:
-	call	check_invalid
-	
-chk_valid:
-	mov		vinput_chk[si], al
-	inc		si
-	loop	input_check_acc
-
-	mov		ah, 3Dh				; open transaction.txt
-	mov		al, 0
-	
-	lea		dx, filename2
-	int		21h
-	
-	jc		chk_file_error
-	mov		filehandle2,ax
-
-	mov		ah, 3Fh
-	mov		bx, filehandle2			; read transaction.txt
-	mov		cx, 1024
-
-	lea		dx, trans_buffer_chk
-	int		21h
-	
-	jc		chk_file_error
-	mov		trans_size, ax
-
-	mov		ah, 3Eh				; close transaction.txt
-	mov		bx, filehandle2
-	int		21h
-
-	mov		si, 0					; search transaction record
-	mov		balance_chk, 0
-
-chk_file_error:
-    jmp check_file_error
-search_trans_chk:
-	cmp		si, trans_size
-	jb		search_trans_chk_continue
-	jmp		check_not_found
-search_trans_chk_continue:
-	cmp		si, 0							; check wheter is begining of new record
-	je		check_acc_chk
-
-	cmp		trans_buffer_chk[si-1], 0Ah
-	je		check_acc_chk
-
-	inc		si
-	jmp		search_trans_chk
-
-check_acc_chk:
-	mov		di, 0
-	mov		bx, si
-
-compare_check_acc:
-	mov		al, trans_buffer_chk[bx]
-	cmp		al, vinput_chk[di]
-	jne		check_not_match
-
-	inc		bx
-	inc		di
-
-	cmp		di, 4
-	jne		compare_check_acc
-
-	cmp		trans_buffer_chk[bx], ','				; after acc number must be ","
-	jne		check_not_match
-
-	mov		found_flag, 1
-
-	mov		ah, 09H							; account found
-	lea		dx, chk5
-	int		21H
-
-	mov		si, bx
-	inc		si
-
-find_type_end_chk:
-    cmp     si, trans_size					; skip transaction type
-    jae     check_not_found
-
-    cmp     trans_buffer_chk[si], ","
-    je      find_amt_start
-
-    inc     si
-    jmp     find_type_end_chk
-
-find_amt_start:
-    inc     si							; skip amount field
-
-find_amt_end_chk:
-    cmp     si, trans_size
-    jae     check_not_found
-
-    cmp     trans_buffer_chk[si], ","
-    je      read_check_bal
-
-    inc     si
-    jmp     find_amt_end_chk
-
-read_check_bal:
-	inc		si									; read new balance
-	mov		balance_chk, 0
-
-read_balance_digit_chk:
-    cmp     si, trans_size
-    jae     save_check_balance
-
-    mov     bl, trans_buffer_chk[si]
-
-    cmp     bl, ","
-    je      save_check_balance
-
-    cmp     bl, 0Dh
-    je      save_check_balance
-
-    cmp     bl, 0Ah
-    je      save_check_balance
-
-    sub     bl, "0"
-    mov     bh, 0
-
-    mov     dx, 10
-    mul     dx
-    add     ax, bx
-
-    inc     si
-    jmp     read_balance_digit_chk
-
-save_check_balance:
-	mov		balance_chk, ax
-    jmp     search_trans_chk
-
-check_not_match:
-	inc		si
-	jmp		search_trans_chk
-
-check_not_found:
-    cmp     found_flag, 0
-    je      check_acc_not_found
-
-    mov     ah, 09h
-    lea     dx, chk6						; display balance
+    mov     ah,09h
+    lea     dx,chk1
+    int     21h
+    mov     ah,09h
+    lea     dx,chk2
+    int     21h
+    mov     ah,09h
+    lea     dx,chk3
+    int     21h
+    mov     ah,09h
+    lea     dx,chk4
     int     21h
 
-    mov     ax, balance_chk
-    call    display_num_chk
+    mov     cx,4
+    mov     si,0
+check_read_acc:
+    mov     ah,01h
+    int     21h
+    mov     vinput_chk[si],al
+    inc     si
+    loop    check_read_acc
 
+    mov     cx,4
+    mov     si,0
+check_validate_acc:
+    cmp     vinput_chk[si],'0'
+    jae __longj_57
+    jmp check_invalid_new
+__longj_57:
+    cmp     vinput_chk[si],'9'
+    ja      check_invalid_new
+    inc     si
+    loop    check_validate_acc
+
+    lea     dx,vinput_chk
+    call    bank_get_balance
+    jc      check_not_found_new
+    mov     balance_chk,ax
+
+    mov     ah,09h
+    lea     dx,chk5
+    int     21h
+    mov     ah,09h
+    lea     dx,chk6
+    int     21h
+    mov     ax,balance_chk
+    call    display_num_dep
     jmp     transaction
 
-check_invalid:
-	mov		ah, 09h				; invalid input
-	lea		dx, chk7
-	int		21h
+check_invalid_new:
+    mov     ah,09h
+    lea     dx,chk7
+    int     21h
+    jmp     transaction
 
-	call	transaction
-
-check_acc_not_found:
-	mov		ah, 09h				; account not found
-	lea		dx, chk8
-	int		21h
-
-	call		transaction
-
-check_file_error:
-	mov		ah, 09h
-	lea		dx, chk9
-	int		21h
-
-	jmp		transaction
-
-display_num_chk proc			; display number
-	mov		bx, 10
-	mov		cx, 0
-
-convert_num_chk:
-	mov		dx, 0
-	div		bx
-
-	push	dx
-	inc		cx
-
-	cmp		ax, 0
-	jne		convert_num_chk
-
-print_num_chk:	
-	pop		dx
-	add		dl, "0"
-
-	mov		ah, 02h
-	int		21h
-
-	loop	print_num_chk
-	ret
-
-display_num_chk endp
-
+check_not_found_new:
+    mov     ah,09h
+    lea     dx,chk8
+    int     21h
+    jmp     transaction
 
 ;=======================Loan & Interest==========================================
 interest_loan:
@@ -4500,17 +4155,21 @@ interest_loan:
 	int	21h
 
 	cmp	al, '1'
-	;je	cal_interest
-
+	jne	interest_check_2
+	jmp	cal_interest
+interest_check_2:
 	cmp	al, '2'
-	;je	add_interest
-
+	jne	interest_check_3
+	jmp	add_interest
+interest_check_3:
 	cmp	al, '3'
-	je	loanpart
-
+	jne	interest_check_4
+	jmp	loanpart
+interest_check_4:
 	cmp	al, '4'
+	jne	interest_invalid_jump
 	jmp	back_to_main
-
+interest_invalid_jump:
 	jmp	invalid_interest
 
 loanpart:
@@ -4520,6 +4179,196 @@ invalid_interest:
 	mov	ah, 09h
 	lea	dx, invalidStr
 	int	21h
+
+;=======================CALCULATE INTEREST==========================================
+cal_interest:
+    mov     ah,09h
+    lea     dx,logo_interest
+    int     21h
+    mov     ah,09h
+    lea     dx,msg_account_input
+    int     21h
+
+    mov     cx,4
+    mov     si,0
+cal_int_read_acc:
+    mov     ah,01h
+    int     21h
+    mov     account_input_calc+2[si],al
+    inc     si
+    loop    cal_int_read_acc
+
+    mov     cx,4
+    mov     si,0
+cal_int_validate:
+    mov     al,account_input_calc+2[si]
+    cmp     al,'0'
+    jae __longj_58
+    jmp cal_int_invalid
+__longj_58:
+    cmp     al,'9'
+    jbe __longj_59
+    jmp cal_int_invalid
+__longj_59:
+    inc     si
+    loop    cal_int_validate
+
+    lea     dx,account_input_calc+2
+    call    bank_get_balance
+    jnc __longj_60
+    jmp cal_int_not_found
+__longj_60:
+    mov     current_balance_calc,ax
+
+    mov     bx,5
+    mul     bx
+    mov     bx,100
+    div     bx
+    mov     interest_amount_calc,ax
+
+    mov     ah,09h
+    lea     dx,msg_balance_input
+    int     21h
+    mov     ax,current_balance_calc
+    call    display_num_dep
+    mov     ah,09h
+    lea     dx,msg_rate_input
+    int     21h
+    mov     ah,09h
+    lea     dx,msg_interest_input
+    int     21h
+    mov     ax,interest_amount_calc
+    call    display_num_dep
+    jmp     cal_int_continue
+
+cal_int_invalid:
+    mov     ah,09h
+    lea     dx,msg_invalid
+    int     21h
+    jmp     cal_int_continue
+
+cal_int_not_found:
+    mov     ah,09h
+    lea     dx,msg_not_found_error
+    int     21h
+
+cal_int_continue:
+    mov     ah,09h
+    lea     dx,msg_continue
+    int     21h
+    mov     ah,01h
+    int     21h
+    and     al,0DFh
+    cmp     al,'Y'
+    jne __longj_61
+    jmp cal_interest
+__longj_61:
+    jmp     interest_loan
+
+;=======================ADD INTEREST==========================================
+add_interest:
+    mov     ah,09h
+    lea     dx,msg_title
+    int     21h
+    mov     ah,09h
+    lea     dx,msg_account
+    int     21h
+
+    mov     cx,4
+    mov     si,0
+add_int_read_acc:
+    mov     ah,01h
+    int     21h
+    mov     account_input+2[si],al
+    inc     si
+    loop    add_int_read_acc
+
+    mov     cx,4
+    mov     si,0
+add_int_validate:
+    mov     al,account_input+2[si]
+    cmp     al,'0'
+    jae __longj_62
+    jmp add_int_invalid
+__longj_62:
+    cmp     al,'9'
+    jbe __longj_63
+    jmp add_int_invalid
+__longj_63:
+    inc     si
+    loop    add_int_validate
+
+    lea     dx,account_input+2
+    call    bank_get_balance
+    jnc __longj_64
+    jmp add_int_not_found
+__longj_64:
+    mov     current_balance,ax
+
+    mov     bx,5
+    mul     bx
+    mov     bx,100
+    div     bx
+    mov     interest_amount,ax
+
+    mov     bx,current_balance
+    add     bx,ax
+    mov     new_balance,bx
+
+    lea     dx,account_input+2
+    mov     generic_account_ptr,dx
+    lea     dx,interest_text
+    mov     generic_type_ptr,dx
+    mov     generic_type_len,8
+    mov     ax,interest_amount
+    mov     generic_amount,ax
+    mov     ax,new_balance
+    mov     generic_new_balance,ax
+    call    bank_append_transaction
+    jnc __longj_65
+    jmp add_int_file_error
+__longj_65:
+
+    mov     ah,09h
+    lea     dx,msg_current
+    int     21h
+    mov     ax,current_balance
+    call    display_num_dep
+    mov     ah,09h
+    lea     dx,msg_rate
+    int     21h
+    mov     ah,09h
+    lea     dx,msg_interest
+    int     21h
+    mov     ax,interest_amount
+    call    display_num_dep
+    mov     ah,09h
+    lea     dx,msg_new
+    int     21h
+    mov     ax,new_balance
+    call    display_num_dep
+    mov     ah,09h
+    lea     dx,msg_success
+    int     21h
+    jmp     interest_loan
+
+add_int_invalid:
+    mov     ah,09h
+    lea     dx,msg_invalid
+    int     21h
+    jmp     interest_loan
+
+add_int_not_found:
+    mov     ah,09h
+    lea     dx,msg_not_found
+    int     21h
+    jmp     interest_loan
+
+add_int_file_error:
+    mov     ah,09h
+    lea     dx,msg_update_error
+    int     21h
+    jmp     interest_loan
 
 ;=======================Loan calculation==========================================
 Loancalc:
@@ -4716,8 +4565,13 @@ Printout:
 	INT 21H
 
 	CMP AL, "Y"
-	JMP interest_loan
+	jne __longj_66
+	jmp interest_loan
+__longj_66:
 	CMP AL, "y"
+	jne __longj_67
+	jmp interest_loan
+__longj_67:
 	JMP interest_loan
 	
 	;CMP AL, "N"
@@ -4737,72 +4591,232 @@ ERROR2:MOV AH, 09H
 ;===================================================================
 
 back_to_main:
-    call	MainMenu
+    jmp	MainMenu
 
 generate_statement:
-	mov	ah, 09h
-	lea	dx, gnt1
-	int	21h
+    mov     ah,09h
+    lea     dx,gnt1
+    int     21h
+    mov     ah,09h
+    lea     dx,gnt2
+    int     21h
+    mov     ah,09h
+    lea     dx,gnt3
+    int     21h
+    mov     ah,09h
+    lea     dx,gnt4
+    int     21h
 
-	mov	ah, 09h
-	lea	dx, gnt2
-	int	21h
+    mov     cx,4
+    mov     si,0
+gen_read_acc:
+    mov     ah,01h
+    int     21h
+    mov     accNum[si],al
+    inc     si
+    loop    gen_read_acc
 
-	mov	ah, 09h
-	lea	dx, gnt3
-	int	21h
+    mov     cx,4
+    mov     si,0
+gen_validate_acc:
+    cmp     accNum[si],'0'
+    jae __longj_68
+    jmp gen_invalid
+__longj_68:
+    cmp     accNum[si],'9'
+    jbe __longj_69
+    jmp gen_invalid
+__longj_69:
+    inc     si
+    loop    gen_validate_acc
 
-	mov	ah, 09h
-	lea	dx, gnt4
-	int	21h
-input_acc:
-	mov	ah, 01h
-	int	21h
+    lea     dx,accNum
+    call    bank_get_balance
+    jnc __longj_70
+    jmp gen_not_found
+__longj_70:
+    mov     balance_chk,ax
 
-	mov	accNum[si], al
-	inc	si
-	loop	input_acc
+    mov     ah,09h
+    lea     dx,accFoundStr
+    int     21h
+    mov     ah,09h
+    lea     dx,stmt_header1
+    int     21h
+    mov     ah,09h
+    lea     dx,stmt_header2
+    int     21h
+    mov     ah,09h
+    lea     dx,stmt_header3
+    int     21h
+    mov     ah,09h
+    lea     dx,stmt_acc_msg
+    int     21h
+    mov     cx,4
+    mov     si,0
+gen_print_acc:
+    mov     dl,accNum[si]
+    mov     ah,02h
+    int     21h
+    inc     si
+    loop    gen_print_acc
+    mov     ah,09h
+    lea     dx,stmt_bal_msg
+    int     21h
+    mov     ax,balance_chk
+    call    display_num_dep
+    mov     ah,09h
+    lea     dx,stmt_trans_msg
+    int     21h
 
-	mov	cx, 6
-	mov	si, 0
+    mov     ax,3D00h
+    lea     dx,filename2
+    int     21h
+    jnc __longj_71
+    jmp gen_no_transactions
+__longj_71:
+    mov     filehandle2,ax
+    mov     bx,filehandle2
+    mov     ah,3Fh
+    mov     cx,1024
+    lea     dx,trans_buffer_chk
+    int     21h
+    jnc __longj_72
+    jmp gen_close_no_transactions
+__longj_72:
+    mov     trans_size,ax
+    mov     bx,filehandle2
+    mov     ah,3Eh
+    int     21h
 
-check_acc_dep:
-	cmp	accNum[si], '0'
-	jb	error3
+    mov     si,0
+    mov     found_flag,0
+gen_scan_lines:
+    cmp     si,trans_size
+    jb __longj_73
+    jmp gen_scan_done
+__longj_73:
+    cmp     si,0
+    je      gen_check_line
+    cmp     trans_buffer_chk[si-1],0Ah
+    je      gen_check_line
+    inc     si
+    jmp     gen_scan_lines
 
-	cmp	accNum[si], '9'
-	ja	error3
+gen_check_line:
+    mov     di,0
+    mov     bx,si
+gen_compare_acc:
+    cmp     di,4
+    je      gen_after_acc
+    cmp     bx,trans_size
+    jb __longj_74
+    jmp gen_scan_done
+__longj_74:
+    mov     al,trans_buffer_chk[bx]
+    cmp     al,accNum[di]
+    je __longj_75
+    jmp gen_skip_line
+__longj_75:
+    inc     bx
+    inc     di
+    jmp     gen_compare_acc
 
-	inc	si
-	loop	check_acc_dep
+gen_after_acc:
+    cmp     trans_buffer_chk[bx],','
+    je __longj_76
+    jmp gen_skip_line
+__longj_76:
+    mov     found_flag,1
+    mov     bx,si
+gen_print_line:
+    cmp     bx,trans_size
+    jb __longj_77
+    jmp gen_line_done_eof
+__longj_77:
+    mov     dl,trans_buffer_chk[bx]
+    cmp     dl,0Dh
+    je      gen_line_done
+    cmp     dl,0Ah
+    je      gen_line_done
+    mov     ah,02h
+    int     21h
+    inc     bx
+    jmp     gen_print_line
 
-error3:
-	mov	ah, 09h
-	lea	dx, invalidStr
-	int	21h
+gen_line_done:
+    mov     dl,13
+    mov     ah,02h
+    int     21h
+    mov     dl,10
+    mov     ah,02h
+    int     21h
+    mov     si,bx
+gen_seek_lf:
+    cmp     si,trans_size
+    jb __longj_78
+    jmp gen_scan_done
+__longj_78:
+    cmp     trans_buffer_chk[si],0Ah
+    je      gen_after_lf
+    inc     si
+    jmp     gen_seek_lf
+gen_after_lf:
+    inc     si
+    jmp     gen_scan_lines
 
-	jmp	generate_statement
+gen_line_done_eof:
+    mov     si,bx
+    jmp     gen_scan_done
 
-acc_found_login:
-	mov	ah, 09h
-	lea	dx, accFoundStr
-	int	21h
+gen_skip_line:
+    cmp     si,trans_size
+    jae     gen_scan_done
+    cmp     trans_buffer_chk[si],0Ah
+    je      gen_skip_done
+    inc     si
+    jmp     gen_skip_line
+gen_skip_done:
+    inc     si
+    jmp     gen_scan_lines
 
-	mov	ah, 09h
-	lea	dx, pressKeyStr
-	int	21h
+gen_scan_done:
+    cmp     found_flag,0
+    je __longj_79
+    jmp gen_finish
+__longj_79:
 
-	mov	ah, 01h
-	int	21h
-	jmp 	MainMenu			; generate statement here
+gen_no_transactions:
+    mov     ah,09h
+    lea     dx,stmt_none_msg
+    int     21h
+    jmp     gen_finish
 
-acc_not_found:
-	mov	ah, 09h
-	lea	dx, accNotFound
-	int	21h
+gen_close_no_transactions:
+    mov     bx,filehandle2
+    mov     ah,3Eh
+    int     21h
+    jmp     gen_no_transactions
 
-	jmp	MainMenu
+gen_invalid:
+    mov     ah,09h
+    lea     dx,invalidStr
+    int     21h
+    jmp     generate_statement
 
+gen_not_found:
+    mov     ah,09h
+    lea     dx,accNotFound
+    int     21h
+    jmp     MainMenu
+
+gen_finish:
+    mov     ah,09h
+    lea     dx,stmt_press_msg
+    int     21h
+    mov     ah,01h
+    int     21h
+    jmp     MainMenu
 
 
 ;==============================================================================
@@ -5524,6 +5538,421 @@ am_close_return:
         ret
 acc_load_bank_details endp
 
+
+;==============================================================================
+; COMMON BANK HELPER: GET LATEST BALANCE
+; Input : DX = address of 4 ASCII account digits
+; Output: CF=0 and AX=latest balance when account exists
+;         CF=1 when account does not exist / account.txt cannot be read
+;==============================================================================
+bank_get_balance proc
+        mov     lookup_account_ptr,dx
+        mov     lookup_found,0
+        mov     lookup_trans_found,0
+        mov     lookup_balance,0
+
+        mov     ax,3D00h
+        lea     dx,filename
+        int     21h
+        jnc __longj_80
+        jmp bgb_fail
+__longj_80:
+        mov     account_manage_handle,ax
+
+        mov     bx,account_manage_handle
+        mov     ah,3Fh
+        mov     cx,4096
+        lea     dx,account_manage_buffer
+        int     21h
+        jnc __longj_81
+        jmp bgb_close_fail
+__longj_81:
+        mov     account_manage_size,ax
+
+        mov     bx,account_manage_handle
+        mov     ah,3Eh
+        int     21h
+
+        mov     si,0
+bgb_next_line:
+        cmp     si,account_manage_size
+        jb __longj_82
+        jmp bgb_fail
+__longj_82:
+        mov     di,si
+        mov     lookup_comma_count,0
+
+bgb_find_second_comma:
+        cmp     di,account_manage_size
+        jb __longj_83
+        jmp bgb_fail
+__longj_83:
+        mov     al,account_manage_buffer[di]
+        cmp     al,0Ah
+        jne __longj_84
+        jmp bgb_advance_line
+__longj_84:
+        cmp     al,','
+        jne     bgb_find_second_next
+        inc     lookup_comma_count
+        cmp     lookup_comma_count,2
+        je      bgb_account_field
+bgb_find_second_next:
+        inc     di
+        jmp     bgb_find_second_comma
+
+bgb_account_field:
+        inc     di
+        mov     bx,lookup_account_ptr
+        mov     cx,4
+bgb_compare_account:
+        mov     al,account_manage_buffer[di]
+        cmp     al,[bx]
+        je __longj_85
+        jmp bgb_skip_line
+__longj_85:
+        inc     di
+        inc     bx
+        loop    bgb_compare_account
+        cmp     account_manage_buffer[di],','
+        je __longj_86
+        jmp bgb_skip_line
+__longj_86:
+        mov     lookup_found,1
+
+        ; skip account type to the next comma
+        inc     di
+bgb_skip_type:
+        cmp     di,account_manage_size
+        jb __longj_87
+        jmp bgb_account_balance_done
+__longj_87:
+        cmp     account_manage_buffer[di],','
+        je      bgb_balance_start
+        inc     di
+        jmp     bgb_skip_type
+
+bgb_balance_start:
+        inc     di
+        xor     ax,ax
+bgb_parse_account_balance:
+        cmp     di,account_manage_size
+        jae     bgb_account_balance_done
+        mov     dl,account_manage_buffer[di]
+        cmp     dl,'0'
+        jb      bgb_account_balance_done
+        cmp     dl,'9'
+        ja      bgb_account_balance_done
+        sub     dl,'0'
+        xor     dh,dh
+        push    dx
+        mov     bx,10
+        mul     bx
+        pop     dx
+        add     ax,dx
+        inc     di
+        jmp     bgb_parse_account_balance
+
+bgb_account_balance_done:
+        mov     lookup_balance,ax
+        jmp     bgb_scan_transactions
+
+bgb_skip_line:
+        cmp     di,account_manage_size
+        jb __longj_88
+        jmp bgb_fail
+__longj_88:
+        cmp     account_manage_buffer[di],0Ah
+        je      bgb_advance_from_di
+        inc     di
+        jmp     bgb_skip_line
+bgb_advance_from_di:
+        inc     di
+        mov     si,di
+        jmp     bgb_next_line
+bgb_advance_line:
+        inc     di
+        mov     si,di
+        jmp     bgb_next_line
+
+bgb_scan_transactions:
+        mov     ax,3D00h
+        lea     dx,filename2
+        int     21h
+        jnc __longj_89
+        jmp bgb_success
+__longj_89:
+        mov     filehandle2,ax
+        mov     bx,filehandle2
+        mov     ah,3Fh
+        mov     cx,1024
+        lea     dx,trans_buffer_dep
+        int     21h
+        jnc __longj_90
+        jmp bgb_close_success
+__longj_90:
+        mov     trans_size_dep,ax
+        mov     bx,filehandle2
+        mov     ah,3Eh
+        int     21h
+
+        mov     si,0
+bgb_trans_next:
+        cmp     si,trans_size_dep
+        jb __longj_91
+        jmp bgb_success
+__longj_91:
+        cmp     si,0
+        je      bgb_trans_check
+        cmp     trans_buffer_dep[si-1],0Ah
+        je      bgb_trans_check
+        inc     si
+        jmp     bgb_trans_next
+
+bgb_trans_check:
+        mov     bx,lookup_account_ptr
+        mov     di,si
+        mov     cx,4
+bgb_trans_compare:
+        cmp     di,trans_size_dep
+        jb __longj_92
+        jmp bgb_success
+__longj_92:
+        mov     al,trans_buffer_dep[di]
+        cmp     al,[bx]
+        je __longj_93
+        jmp bgb_trans_skip_line
+__longj_93:
+        inc     di
+        inc     bx
+        loop    bgb_trans_compare
+        cmp     trans_buffer_dep[di],','
+        je __longj_94
+        jmp bgb_trans_skip_line
+__longj_94:
+
+        ; find third comma: account,type,amount,newbalance,date
+        mov     lookup_comma_count,0
+bgb_find_third_comma:
+        cmp     di,trans_size_dep
+        jb __longj_95
+        jmp bgb_success
+__longj_95:
+        mov     al,trans_buffer_dep[di]
+        cmp     al,0Dh
+        jne __longj_96
+        jmp bgb_trans_skip_line
+__longj_96:
+        cmp     al,0Ah
+        jne __longj_97
+        jmp bgb_trans_skip_line
+__longj_97:
+        cmp     al,','
+        jne     bgb_third_next
+        inc     lookup_comma_count
+        cmp     lookup_comma_count,3
+        je      bgb_trans_balance_start
+bgb_third_next:
+        inc     di
+        jmp     bgb_find_third_comma
+
+bgb_trans_balance_start:
+        inc     di
+        xor     ax,ax
+bgb_parse_trans_balance:
+        cmp     di,trans_size_dep
+        jae     bgb_save_trans_balance
+        mov     dl,trans_buffer_dep[di]
+        cmp     dl,'0'
+        jb      bgb_save_trans_balance
+        cmp     dl,'9'
+        ja      bgb_save_trans_balance
+        sub     dl,'0'
+        xor     dh,dh
+        push    dx
+        mov     bx,10
+        mul     bx
+        pop     dx
+        add     ax,dx
+        inc     di
+        jmp     bgb_parse_trans_balance
+
+bgb_save_trans_balance:
+        mov     lookup_balance,ax
+        mov     lookup_trans_found,1
+        mov     si,di
+        jmp     bgb_trans_skip_line_from_si
+
+bgb_trans_skip_line:
+        mov     di,si
+bgb_trans_skip_loop:
+        cmp     di,trans_size_dep
+        jae     bgb_success
+        cmp     trans_buffer_dep[di],0Ah
+        je      bgb_trans_after_lf
+        inc     di
+        jmp     bgb_trans_skip_loop
+bgb_trans_after_lf:
+        inc     di
+        mov     si,di
+        jmp     bgb_trans_next
+
+bgb_trans_skip_line_from_si:
+        mov     di,si
+        jmp     bgb_trans_skip_loop
+
+bgb_close_success:
+        mov     bx,filehandle2
+        mov     ah,3Eh
+        int     21h
+bgb_success:
+        mov     ax,lookup_balance
+        clc
+        ret
+
+bgb_close_fail:
+        mov     bx,account_manage_handle
+        mov     ah,3Eh
+        int     21h
+bgb_fail:
+        stc
+        ret
+bank_get_balance endp
+
+;==============================================================================
+; COMMON BANK HELPER: APPEND TRANSACTION
+; Uses generic_account_ptr, generic_type_ptr, generic_type_len,
+;      generic_amount and generic_new_balance
+; Record: account,type,amount,newbalance,DD/MM/YYYY CR LF
+;==============================================================================
+bank_append_transaction proc
+        lea     di,trans_record
+
+        mov     si,generic_account_ptr
+        mov     cx,4
+bat_copy_account:
+        mov     al,[si]
+        mov     [di],al
+        inc     si
+        inc     di
+        loop    bat_copy_account
+
+        mov     byte ptr [di],','
+        inc     di
+
+        mov     si,generic_type_ptr
+        mov     cx,generic_type_len
+bat_copy_type:
+        mov     al,[si]
+        mov     [di],al
+        inc     si
+        inc     di
+        loop    bat_copy_type
+
+        mov     byte ptr [di],','
+        inc     di
+
+        mov     ax,generic_amount
+        call    bank_write_number_to_record
+        mov     byte ptr [di],','
+        inc     di
+
+        mov     ax,generic_new_balance
+        call    bank_write_number_to_record
+        mov     byte ptr [di],','
+        inc     di
+
+        mov     ah,2Ah
+        int     21h
+        mov     date_day,dl
+        mov     date_month,dh
+        mov     date_year,cx
+
+        mov     al,date_day
+        call    write_2_digit
+        mov     byte ptr [di],'/'
+        inc     di
+        mov     al,date_month
+        call    write_2_digit
+        mov     byte ptr [di],'/'
+        inc     di
+        mov     ax,date_year
+        call    write_4_digit
+
+        mov     byte ptr [di],0Dh
+        inc     di
+        mov     byte ptr [di],0Ah
+        inc     di
+
+        mov     ax,di
+        lea     bx,trans_record
+        sub     ax,bx
+        mov     trans_length,ax
+
+        mov     ax,3D02h
+        lea     dx,filename2
+        int     21h
+        jnc     bat_open_ok
+        cmp     ax,2
+        je __longj_98
+        jmp bat_fail
+__longj_98:
+        mov     ah,3Ch
+        mov     cx,0
+        lea     dx,filename2
+        int     21h
+        jnc __longj_99
+        jmp bat_fail
+__longj_99:
+bat_open_ok:
+        mov     filehandle2,ax
+        mov     bx,filehandle2
+        mov     ax,4202h
+        xor     cx,cx
+        xor     dx,dx
+        int     21h
+        jc      bat_close_fail
+
+        mov     bx,filehandle2
+        mov     ah,40h
+        mov     cx,trans_length
+        lea     dx,trans_record
+        int     21h
+        jc      bat_close_fail
+
+        mov     bx,filehandle2
+        mov     ah,3Eh
+        int     21h
+        clc
+        ret
+
+bat_close_fail:
+        mov     bx,filehandle2
+        mov     ah,3Eh
+        int     21h
+bat_fail:
+        stc
+        ret
+bank_append_transaction endp
+
+bank_write_number_to_record proc
+        mov     bx,10
+        xor     cx,cx
+bwn_convert:
+        xor     dx,dx
+        div     bx
+        push    dx
+        inc     cx
+        cmp     ax,0
+        jne     bwn_convert
+bwn_print:
+        pop     dx
+        add     dl,'0'
+        mov     [di],dl
+        inc     di
+        loop    bwn_print
+        ret
+bank_write_number_to_record endp
 
 exit_program:
         mov     ax,4C00h

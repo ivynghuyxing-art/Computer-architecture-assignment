@@ -163,9 +163,9 @@ file_email          db 31 dup(0)	;store email from user.txt
 ;----------------------------------------------------------------------------------------
 
 ;-------------------------------- Xin Jie Data----------------------------------------
-	msg1	db	10,13,"------------------------- $"
-	msg2	db	10,13,"         DEPOSIT          $"
-	msg3	db	10,13,"------------------------- $"
+	msg1	db	10,13,"========================================= $"
+	msg2	db	10,13,"        			 DEPOSIT      		     $"
+	msg3	db	10,13,"========================================= $"
 	msg4	db	10,13,"Enter account number: $"
 	msg5	db	10,13,"Account found. $"
 	msg6	db	10,13,"Current Balance: RM$"
@@ -201,9 +201,9 @@ file_email          db 31 dup(0)	;store email from user.txt
 	trans_record	db	80 dup(?)
 	trans_length	dw	?
 ; ------------------------------------------------------------- check balance ---------------------------------------------------------
-        chk1	db	10,13,"------------------------- $"
-	chk2	db	10,13,"       CHECK BALANCE       $"
-	chk3	db	10,13,"------------------------- $"
+    chk1	db	10,13,"========================================= $"
+	chk2	db	10,13,"      		  CHECK BALANCE      	     $"
+	chk3	db	10,13,"========================================= $"
 	chk4	db	10,13,"Enter account number: $"
 	chk5	db	10,13,"Account found. $"
 	chk6	db	10,13,"Current Balance: RM$"
@@ -219,9 +219,9 @@ file_email          db 31 dup(0)	;store email from user.txt
 ;--------------------------------Cayenne Data---------------------------------------------
 withdraw_amount		dw	?
 
-withdraw_title1		db	10,13,"---------------------------------------$"
-withdraw_title2		db	10,13,"               WITHDRAW                $"
-withdraw_title3		db	10,13,"---------------------------------------$"
+withdraw_title1		db	10,13,"========================================= $"
+withdraw_title2		db	10,13,"                 WITHDRAW                 $"
+withdraw_title3		db	10,13,"========================================= $"
 
 wd_msg2		db	10,13,"Enter account number: $"
 wd_msg3		db	10,13,"Account found. $"

@@ -472,6 +472,7 @@ INTEREST DW 0 	;Interest result
 	deposit	dw	?
 	newbalance	dw	?
 	vinput_dep	db	4 dup(?)
+        acc_input db 4 dup(?)
 
 	filename	db	"account.txt",0
 	filehandle	dw	?
@@ -487,6 +488,10 @@ INTEREST DW 0 	;Interest result
 
 	trans_record	db	80 dup(?)
 	trans_length	dw	?
+
+        date_day    db ?
+	date_month  db ?
+	date_year   dw ?
 
 ;=======================WITHDRAWAL=======================
     balance_wid					dw	1000
@@ -3127,7 +3132,7 @@ transaction:
 	int	21h
 
 	cmp	al, '1'
-	je	deposit_money
+	je	deposit_start
 
 	cmp	al, '2'
 	je	withdrawmenu
@@ -3152,8 +3157,7 @@ invalid_trans:
 
 	jmp	transaction
 ;========================Deposit Money==========================================
-deposit_money:
-start:					; display deposit title
+deposit_start:				; display deposit title
 	mov	ah, 09h
 	lea	dx, dep1
 	int	21h
@@ -3215,6 +3219,14 @@ convert_acc:
 	loop	convert_acc
 
 	mov	acc_num_dep, ax
+        mov	si, 0
+	mov	cx, 4
+
+save_acc_input:
+	mov	al, vinput_dep[si]
+	mov	acc_input[si], al
+	inc	si
+	loop	save_acc_input
 
 	mov	ah, 3Dh			; open account.txt
 	mov	al, 2
@@ -3345,116 +3357,200 @@ trans_read_ok:
 	mov	balance_dep, 0
 
 search_trans:
-	cmp	si, trans_size_dep
-	jb	trans_search_con1
-	jmp	trans_search_done
 
-trans_search_con1:
-	cmp	si, 0
-	je	check_trans_acc
+    ; Check if reached end of file
+    cmp si, trans_size
+    jb si_in_range1
+    jmp near ptr trans_search_done
+si_in_range1:
 
-	cmp	trans_buffer_dep[si-1], 0Dh
-	je	check_trans_acc
+    ; ==============================
+    ; Make sure SI is at beginning
+    ; of a transaction record
+    ; ==============================
 
-	cmp	trans_buffer_dep[si-1], 0Ah
-	je	check_trans_acc
+    cmp si, 0
+    je check_trans_acc
 
-	inc	si
-	jmp	near ptr search_trans
+    cmp trans_buffer[si-1], 0Ah
+    je check_trans_acc
+
+    inc si
+    jmp search_trans
+
 
 check_trans_acc:
-	mov	ax, trans_size_dep
-	sub	ax, si
 
-	cmp	ax, 5
-	jae	trans_search_con2
-	jmp	near ptr trans_search_done
+    ; Make sure at least 4 account digits exist
+    mov ax, trans_size
+    sub ax, si
+    cmp ax, 4
+    jae enough_digits
+    jmp near ptr trans_search_done
+enough_digits:
 
-trans_search_con2:
-	mov	di, 0			; Compare account number
-	mov	bx, si
+    ; ==============================
+    ; Compare account number
+    ; ==============================
+
+    mov di, 0
+    mov bx, si
 
 compare_trans_acc:
-	mov	al, trans_buffer_dep[bx]
-	cmp	al, vinput_dep[di]
-	jne	trans_not_match
 
-	inc	bx
-	inc	di
+    mov al, trans_buffer[bx]
+    cmp al, acc_input[di]
+    jne near ptr trans_skip_record
 
-	cmp	di, 4
-	jne	compare_trans_acc
+trans_acc_match:
+    inc bx
+    inc di
 
-	cmp	trans_buffer_dep[bx], ","
-	jne	trans_not_match
+    cmp di, 4
+    jne compare_trans_acc
 
-	mov	si, bx			; Account number matches
-	inc	si			; Now find balance
+    ; Must have comma after account number
+    cmp trans_buffer[bx], ","
+    jne trans_skip_record
 
-find_type_end:
-	cmp	si, trans_size_dep
-	jb	find_type_con1
-	jmp	near ptr find_type_end
+    ; ==============================
+    ; Account number matched
+    ; ==============================
 
-find_type_con1:
-	cmp	trans_buffer_dep[si], ","
-	je	find_amt_end
+    mov si, bx
+    inc si
 
-	inc	si
-	jmp	near ptr find_type_end
 
-find_amt_end:
-	inc	si
+    ; ==============================
+    ; Skip Transaction Type
+    ; Example:
+    ; Deposit,
+    ; ==============================
 
-find_third_comma:
-	cmp	si, trans_size_dep
-	jb	third_comma_con1
-	jmp	near ptr trans_search_done
+skip_transaction_type:
 
-third_comma_con1:
-	cmp	trans_buffer_dep[si], ","
-	je	read_trans_balance
+    cmp si, trans_size
+    jae trans_search_done
 
-	inc	si
-	jmp	near ptr find_third_comma
+    cmp trans_buffer[si], ","
+    je transaction_type_done
+
+    inc si
+    jmp skip_transaction_type
+
+
+transaction_type_done:
+
+    inc si
+
+
+    ; ==============================
+    ; Skip Amount
+    ; Example:
+    ; 500,
+    ; ==============================
+
+skip_amount:
+
+    cmp si, trans_size
+    jae trans_search_done
+
+    cmp trans_buffer[si], ","
+    je amount_done
+
+    inc si
+    jmp skip_amount
+
+
+amount_done:
+
+    inc si
+
+
+    ; ==============================
+    ; Read New Balance
+    ; ==============================
+
+    mov ax, 0
+
 
 read_trans_balance:
-	inc	si
-	mov	ax, 0
 
-read_balance_digit:
-	cmp	si, trans_size_dep
-	jae	save_balance
+    cmp si, trans_size
+    jae save_trans_balance
 
-	mov	bl, trans_buffer_dep[si]
+    mov bl, trans_buffer[si]
 
-	cmp	bl, ","
-	je	save_balance
+    cmp bl, ","
+    je save_trans_balance
 
-	cmp	bl, 0Dh
-	je	save_balance
+    cmp bl, 0Dh
+    je save_trans_balance
 
-	cmp	bl, 0Ah
-	je	save_balance
+    cmp bl, 0Ah
+    je save_trans_balance
 
-	sub	bl, "0"
-	mov	bh, 0
+    ; Convert ASCII digit to number
+    sub bl, "0"
+    mov bh, 0
 
-	mov	dx, 10
-	mul	dx
+    mov dx, 10
+    mul dx
 
-	add	ax, bx
-	inc	si
+    add ax, bx
 
-	jmp	near ptr read_balance_digit
+    inc si
+    jmp read_trans_balance
 
-save_balance:
-	mov	balance_dep, ax
-	jmp	near ptr search_trans
+save_trans_balance:
 
-trans_not_match:
-	inc	si
-	jmp	near ptr search_trans
+    ; Save latest balance
+    mov balance, ax
+
+    ; ==============================
+    ; Move to next transaction line
+    ; ==============================
+
+skip_to_next_line:
+
+    cmp si, trans_size
+    jae trans_search_done
+
+    cmp trans_buffer[si], 0Ah
+    je next_transaction
+
+    inc si
+    jmp skip_to_next_line
+
+
+next_transaction:
+
+    inc si
+    jmp search_trans
+
+
+; ==================================
+; Account number does not match
+; ==================================
+
+trans_skip_record:
+
+skip_current_record:
+
+    cmp si, trans_size
+    jae trans_search_done
+
+    cmp trans_buffer[si], 0Ah
+    je skip_line_done
+
+    inc si
+    jmp skip_current_record
+
+
+skip_line_done:
+
+    inc si
+    jmp search_trans
 
 trans_search_done:
 	mov	ah, 09h			; diaplsy current balance
@@ -3645,53 +3741,54 @@ print_newbalance_record:
 	mov	[di], al
 	inc	di
 
-	mov	al, "0"			; date
-	mov	[di], al
-	inc	di
+	mov ah, 2Ah  			; get current date
+	int 21h
 
-	mov	al, "3"
-	mov	[di], al
-	inc	di
+; DL = day
+; DH = month
+; CX = year
 
-	mov	al, "/"
-	mov	[di], al
-	inc	di
+; Save date values
+mov date_day, dl
+mov date_month, dh
+mov date_year, cx
 
-	mov	al, "0"
-	mov	[di], al
-	inc	di
+; ----------------
+; Day
+; ----------------
+mov al, date_day
+call write_2_digit
 
-	mov	al, "9"
-	mov	[di], al
-	inc	di
+mov al, "/"
+mov [di], al
+inc di
 
-	mov	al, "/"
-	mov	[di], al
-	inc	di
+; ----------------
+; Month
+; ----------------
+mov al, date_month
+call write_2_digit
 
-	mov	al, "2"
-	mov	[di], al
-	inc	di
+mov al, "/"
+mov [di], al
+inc di
 
-	mov	al, "0"
-	mov	[di], al
-	inc	di
+; ----------------
+; Year
+; ----------------
+mov ax, date_year
+call write_4_digit
 
-	mov	al, "2"
-	mov	[di], al
-	inc	di
+; ----------------
+; CR LF
+; ----------------
+mov al, 0Dh
+mov [di], al
+inc di
 
-	mov	al, "6"
-	mov	[di], al
-	inc	di
-
-	mov	al, 0Dh
-	mov	[di], al
-	inc	di
-
-	mov	al, 0Ah
-	mov	[di], al
-	inc	di
+mov al, 0Ah
+mov [di], al
+inc di
 
 	mov	ax, di
 	lea	bx, trans_record
@@ -3734,6 +3831,27 @@ print_newbalance_record:
 	lea	dx, dep12
 	int	21h
 
+        mov ah,09h
+	lea dx, dep14
+	int 21h
+
+	mov ah,01h
+	int 21h
+
+	and al,0DFh        ; convert lowercase to uppercase
+
+	cmp al,'Y'
+	je continue_yes
+
+	cmp al,'N'
+	je continue_no
+
+	jmp	back_to_submenu_trans
+
+	continue_yes:
+    	jmp start
+
+	continue_no:
 	jmp	back_to_submenu_trans
 
 error:	
@@ -4009,18 +4127,18 @@ check_bal:
 	mov		si, 0
 
 input_check_acc:
-	mov		ah, 01h
-	int		21h
-
 	cmp		al, '0'
 	jb		chk_invalid
 
 	cmp		al, '9'
 	ja		chk_invalid
 
+	jmp		chk_valid
+
 chk_invalid:
-	call check_invalid
+	call	check_invalid
 	
+chk_valid
 	mov		vinput_chk[si], al
 	inc		si
 	loop	input_check_acc
@@ -4186,8 +4304,6 @@ check_file_error:
 	int		21h
 
 	jmp		transaction
-
-check_bal endp
 
 display_num_chk proc			; display number
 	mov		bx, 10

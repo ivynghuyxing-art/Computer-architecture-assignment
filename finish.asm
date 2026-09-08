@@ -1574,13 +1574,13 @@ transaction:
         je      deposit_start
 
         cmp     al, '2'
-        je      deposit_start
+        je      withdraw
 
         cmp     al, '3'
-        je      deposit_start
+        je      check_bal
 
         cmp     al, '4'
-        je      deposit_start
+        je      transaction_menu
 
         jmp     transaction_menu                ; invalid choice
 
@@ -1650,7 +1650,7 @@ convert_acc:
 	mov	cx, 4
 
 save_acc_input:
-	mov	al, vinput[si]
+	mov	al, vinput_dep[si]
 	mov	acc_input[si], al
 	inc	si
 	loop	save_acc_input

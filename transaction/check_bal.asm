@@ -226,7 +226,7 @@ check_file_error:
 
 check_bal endp
 
-display_num_chk proc			; display number
+display_num proc			; display number
 	mov		bx, 10
 	mov		cx, 0
 
@@ -250,7 +250,7 @@ print_num:
 	loop	print_num
 	ret
 
-display_num_chk endp
+display_num endp
 
 exit:	
 	mov		ax, 4c00h

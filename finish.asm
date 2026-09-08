@@ -1582,7 +1582,7 @@ transaction:
         cmp     al, '4'
         je      deposit_start
 
-        jmp     transaction_menu                ; invalid choice
+        jmp     transaction                ; invalid choice
 
 deposit_start:
      mov	ah, 09h
@@ -2273,13 +2273,11 @@ inc di
 	cmp al,'N'
 	je continue_no
 
-	jmp exit
+continue_yes:
+    	call deposit_start
 
-	continue_yes:
-    	jmp start
-
-	continue_no:
-    	jmp exit
+continue_no:
+    	call transaction
 
 error:	
 	mov	ah, 09h			; invalid input after file open
@@ -2755,7 +2753,7 @@ wd_convert_withdraw:
 	mov	withdraw_amount, ax
  
 	cmp	ax, balance			; check sufficient balance
-	ja	wd_insufficient
+	call	wd_insufficient
  
 	mov	ax, balance			; withdrawal calculation
 	sub	ax, withdraw_amount
@@ -3033,9 +3031,9 @@ input_check_acc:
 	int		21h
 
 	cmp		al, '0'
-	jb		check_invalid
+	call		check_invalid
 	cmp		al, '9'
-	ja		check_invalid
+	call		check_invalid
 
 	mov		vinput[si], al
 	inc		si
@@ -3215,66 +3213,7 @@ check_file_error:
 	jmp		transaction
 
 
-;------------Transaction page ------------------------------
-transaction:
-	mov	ah, 09h
-	lea	dx, trans1
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans2
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans3
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans4
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans5
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans6
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans7
-	int	21h
-
-	mov	ah, 09h
-	lea	dx, trans8
-	int	21h
-
-	mov	ah, 01h
-	int	21h
-
-	cmp	al, '1'
-	;je	deposit_money
-
-	cmp	al, '2'
-	;je	withdrawal_money Didn't put the code for this function yetfor this three
-
-	cmp	al, '3'
-	;je	check_bal
-
-	cmp	al, '4'
-	call	Mainmenu
-
-	jmp	invalid_trans
-
-invalid_trans:
-	mov	ah, 09h
-	lea	dx, invalidStr
-	int	21h
-
-	jmp	transaction
-
 ;------------Loan and interest page  ------------------------------
->>>>>>> ae07161e6a261132215b92e1e4e50ed249ccbde5
 interest_loan:
     MOV AH, 09H
    	LEA DX, int1
@@ -3627,5 +3566,5 @@ logout:
 
 	mov	ax, 4C00h
 	int	21h
-        MAIN ENDP
-END MAIN
+     
+end main

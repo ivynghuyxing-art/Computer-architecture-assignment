@@ -69,6 +69,8 @@ msg22   db 10,13,"Invalid username or password!$"
 msg23   db 10,13,"Register Successfully!$"
 
 msg24   db 10,13,"Invalid email! Please enter correct email!$"
+msg25   db 10,13,"Email already registered! Please enter another email!$"
+msg26   db 10,13,"Username already exists! Please enter another username!$"
 
 msg_file_error db 10,13,"Error: Cannot open user.txt!$"
 
@@ -104,6 +106,7 @@ comma_char          db ","			;seperate user data with ,
 new_line            db 13,10		;one user finish, go to next line
 file_char           db ?			;read one character from user.txt
 file_eof            db 0			;check end of file
+dup_comma_count     db 0            ;count commas when checking duplicate email
 
 
 file_username       db 21 dup(0)	;store username read from user.txt
@@ -236,6 +239,9 @@ register:
         lea     dx,msg10
         int     21h
 
+        jmp     input_register_username_start
+
+input_register_username_start:
         mov     ah,09h
         lea     dx,msg11
         int     21h
@@ -261,11 +267,112 @@ register_username:
 username_done:
         mov     byte ptr reg_username[si],0
 
-        jmp     password_again
+        jmp     check_duplicate_username
 
 username_full:
         mov     byte ptr reg_username[si],0
 
+        jmp     check_duplicate_username
+
+check_duplicate_username:
+        mov     ax,3D00h               ;open user.txt for reading
+        lea     dx,user_filename
+        int     21h
+
+        jnc     duplicate_username_file_open_ok
+
+        cmp     ax,2                   ;error 2 = file does not exist yet
+        jne     duplicate_username_open_error
+        jmp     username_not_found
+
+duplicate_username_open_error:
+        jmp     user_file_error
+
+duplicate_username_file_open_ok:
+        mov     user_handle,ax
+
+duplicate_username_next_record:
+        mov     si,0
+
+read_existing_username:
+        mov     bx,user_handle
+        mov     ah,3Fh
+        mov     cx,1
+        lea     dx,file_char
+        int     21h
+
+        cmp     ax,0
+        je      duplicate_username_not_found_close
+
+        mov     al,file_char
+
+        cmp     al,13                  ;skip CR between records
+        je      read_existing_username
+
+        cmp     al,10                  ;skip LF between records
+        je      read_existing_username
+
+        cmp     al,','                 ;end of username field
+        je      existing_username_done
+
+        cmp     si,20
+        jae     read_existing_username
+
+        mov     file_username[si],al
+        inc     si
+
+        jmp     read_existing_username
+
+existing_username_done:
+        mov     byte ptr file_username[si],0
+        mov     si,0
+
+compare_existing_username:
+        mov     al,file_username[si]
+        cmp     al,reg_username[si]
+        jne     duplicate_username_skip_record
+
+        cmp     al,0
+        je      duplicate_username_found
+
+        inc     si
+        jmp     compare_existing_username
+
+duplicate_username_skip_record:
+        mov     bx,user_handle
+        mov     ah,3Fh
+        mov     cx,1
+        lea     dx,file_char
+        int     21h
+
+        cmp     ax,0
+        je      duplicate_username_not_found_close
+
+        mov     al,file_char
+        cmp     al,13
+        je      duplicate_username_next_record
+        cmp     al,10
+        je      duplicate_username_next_record
+
+        jmp     duplicate_username_skip_record
+
+duplicate_username_found:
+        mov     bx,user_handle
+        mov     ah,3Eh
+        int     21h
+
+        mov     ah,09h
+        lea     dx,msg26
+        int     21h
+
+        jmp     input_register_username_start
+
+duplicate_username_not_found_close:
+        mov     bx,user_handle
+        mov     ah,3Eh
+        int     21h
+
+username_not_found:
         jmp     password_again
 
 password_again:
@@ -449,18 +556,60 @@ input_email_start:
         mov     si,0
 
 input_email:
-        mov     ah,01h
+        mov     ah,08h                 ;read without automatic echo
         int     21h
 
-        cmp     al,0Dh
+        cmp     al,0Dh                 ;ENTER
         je      email_done
 
+        cmp     al,08h                 ;BACKSPACE
+        je      email_backspace
+
+        cmp     al,00h                 ;extended key prefix
+        je      email_extended_key
+
+        cmp     al,0E0h                ;extended key prefix on some keyboards
+        je      email_extended_key
+
         cmp     si,30
-        jae     email_done
+        jae     input_email
 
         mov     reg_email[si],al
-
         inc     si
+
+        mov     dl,al                  ;manual echo
+        mov     ah,02h
+        int     21h
+
+        jmp     input_email
+
+email_extended_key:
+        mov     ah,08h                 ;read scan code
+        int     21h
+
+        cmp     al,53h                 ;DELETE key
+        je      email_backspace        ;treat DELETE as delete previous character
+
+        jmp     input_email
+
+email_backspace:
+        cmp     si,0
+        je      input_email
+
+        dec     si
+        mov     byte ptr reg_email[si],0
+
+        mov     dl,08h                 ;move cursor left
+        mov     ah,02h
+        int     21h
+
+        mov     dl,' '                 ;erase character
+        mov     ah,02h
+        int     21h
+
+        mov     dl,08h                 ;move cursor left again
+        mov     ah,02h
+        int     21h
 
         jmp     input_email
 
@@ -554,6 +703,149 @@ email_invalid:
         jmp     input_email_start
 
 email_valid:
+        jmp     check_duplicate_email
+
+;===========================================================
+; CHECK DUPLICATE EMAIL IN USER.TXT
+;===========================================================
+check_duplicate_email:
+        mov     ax,3D00h               ;open user.txt for reading
+        lea     dx,user_filename
+        int     21h
+
+        jnc     duplicate_file_open_ok
+
+        cmp     ax,2                   ;error 2 = file does not exist yet
+        je      duplicate_file_missing
+
+        jmp     user_file_error
+
+duplicate_file_missing:
+        jmp     register_successful
+
+duplicate_file_open_ok:
+        mov     user_handle,ax
+
+        jmp     duplicate_next_record
+
+duplicate_next_record:
+        mov     dup_comma_count,0
+
+find_email_field:
+        mov     bx,user_handle
+        mov     ah,3Fh
+        mov     cx,1
+        lea     dx,file_char
+        int     21h
+
+        cmp     ax,0
+        jne     find_email_char_ok
+
+        jmp     duplicate_not_found
+
+find_email_char_ok:
+        mov     al,file_char
+
+        cmp     al,13                  ;skip CR
+        je      find_email_field
+
+        cmp     al,10                  ;skip LF
+        je      find_email_field
+
+        cmp     al,','
+        jne     find_email_field
+
+        inc     dup_comma_count
+
+        cmp     dup_comma_count,3      ;email is the 4th field
+        jne     find_email_field
+
+        mov     si,0
+
+read_existing_email:
+        mov     bx,user_handle
+        mov     ah,3Fh
+        mov     cx,1
+        lea     dx,file_char
+        int     21h
+
+        cmp     ax,0
+        je      existing_email_eof
+
+        mov     al,file_char
+
+        cmp     al,13
+        je      existing_email_done
+
+        cmp     al,10
+        je      existing_email_done
+
+        cmp     si,30
+        jae     skip_existing_email_char
+
+        mov     file_email[si],al
+        inc     si
+
+skip_existing_email_char:
+        jmp     read_existing_email
+
+existing_email_eof:
+        mov     byte ptr file_email[si],0
+        jmp     compare_existing_email
+
+existing_email_done:
+        mov     byte ptr file_email[si],0
+
+compare_existing_email:
+        mov     si,0
+
+compare_existing_email_loop:
+        mov     al,file_email[si]
+        mov     dl,reg_email[si]
+
+        ;compare email case-insensitively for A-Z
+        cmp     al,'A'
+        jb      existing_email_char_ready
+        cmp     al,'Z'
+        ja      existing_email_char_ready
+        add     al,20h
+
+existing_email_char_ready:
+        cmp     dl,'A'
+        jb      registered_email_char_ready
+        cmp     dl,'Z'
+        ja      registered_email_char_ready
+        add     dl,20h
+
+registered_email_char_ready:
+        cmp     al,dl
+        jne     duplicate_email_not_same
+
+        cmp     al,0
+        je      duplicate_email_found
+
+        inc     si
+        jmp     compare_existing_email_loop
+
+duplicate_email_not_same:
+        jmp     duplicate_next_record
+
+duplicate_email_found:
+        mov     bx,user_handle
+        mov     ah,3Eh
+        int     21h
+
+        mov     ah,09h
+        lea     dx,msg25
+        int     21h
+
+        jmp     input_email_start
+
+duplicate_not_found:
+        mov     bx,user_handle
+        mov     ah,3Eh
+        int     21h
+
         jmp     register_successful
 
 register_successful:
@@ -1197,13 +1489,6 @@ login_success:
         lea     dx,msg21
 
         int     21h
-
-;===========================================================
-; FOR TESTING
-;
-; WHEN COMBINE WITH BANKING MAIN MENU,
-; CHANGE "jmp menu" TO YOUR BANK MENU LABEL
-;===========================================================
 
         jmp     menu
 
